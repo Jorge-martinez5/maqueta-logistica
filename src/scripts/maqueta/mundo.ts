@@ -1,5 +1,6 @@
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { aplicacionesMapa } from '../../data/aplicaciones';
 
 const colores = {
   cal: 0xf8f8ed, blanco: 0xfffff6, hormigon: 0xd6dbcc, junta: 0xb9c5b1,
@@ -7,13 +8,18 @@ const colores = {
   hoja: 0x7ca669, hierba: 0xb1c49c, tierra: 0xc1af8b, carton: 0xcfa46d,
   cartonClaro: 0xe3bd86, madera: 0x92704a, metal: 0x65756c, acero: 0xa6b4ab,
   cristal: 0x294039, neum: 0x27302a, asfalto: 0x778780, carretera: 0xecebd9,
-  arena: 0xe5e7d7, negro: 0x233528, semaforo: 0xc4f398,
+  arena: 0xe5e7d7, negro: 0x233528, semaforo: 0xc4f398, piel: 0xd6a77d,
 };
 
 type Tono = keyof typeof colores;
 type Posicion = [number, number, number];
 
-export function construirMundo(escena: T.Scene, interior = false) {
+export type TipoMaqueta = 'terminal' | 'interior' | 'transit';
+
+export function construirMundo(escena: T.Scene, tipo: TipoMaqueta = 'terminal') {
+  const interior = tipo === 'interior';
+  const transit = tipo === 'transit';
+  const terminal = tipo === 'terminal';
   const cubo = new T.BoxGeometry(1, 1, 1);
   const redondo = new RoundedBoxGeometry(1, 1, 1, 2, 0.075);
   const rueda = new T.CylinderGeometry(0.5, 0.5, 1, 18);
@@ -67,22 +73,34 @@ export function construirMundo(escena: T.Scene, interior = false) {
     return placa;
   }
 
-  function camion(tono: Tono, marca = 'Tisnova') {
+  function camion(tono: Tono, ventanillaAbierta = false) {
     const parent = new T.Group();
     caja('negro', [8.3, 0.24, 1.85], [0, 0.68, 0], parent);
     volumen(parent, 'blanco', [6.1, 2.36, 2.27], [-1.06, 2.00, 0], redondo);
     caja('salvia', [5.98, 0.20, 2.29], [-1.07, 0.99, 0], parent);
-    volumen(parent, tono, [2.06, 2.31, 2.13], [3.11, 1.78, 0], redondo);
+    if (ventanillaAbierta) {
+      volumen(parent, tono, [2.06, 1.12, 2.13], [3.11, 1.18, 0], redondo);
+      volumen(parent, tono, [2.06, 0.21, 2.13], [3.11, 2.86, 0], redondo);
+      caja(tono, [0.16, 1.05, 2.1], [2.17, 2.25, 0], parent);
+      caja(tono, [0.18, 1.05, 0.13], [4.05, 2.25, -0.99], parent);
+      caja(tono, [0.18, 1.05, 0.13], [4.05, 2.25, 0.99], parent);
+      caja(tono, [1.98, 1.05, 0.14], [3.12, 2.25, 0.99], parent);
+      caja('negro', [0.44, 0.2, 1.95], [3.82, 1.84, 0], parent);
+      caja('bosque', [1.56, 0.64, 0.05], [3.11, 1.29, -1.067], parent);
+      caja('metal', [0.24, 0.06, 0.05], [2.52, 1.52, -1.10], parent);
+    } else {
+      volumen(parent, tono, [2.06, 2.31, 2.13], [3.11, 1.78, 0], redondo);
+    }
     volumen(parent, 'negro', [0.27, 0.33, 2.18], [4.04, 0.66, 0], redondo);
     caja('cristal', [0.08, 0.74, 1.82], [4.09, 2.27, 0], parent);
     caja('metal', [0.09, 0.52, 1.65], [4.1, 1.12, 0], parent);
     for (const lado of [-1, 1]) {
       const z = lado * 1.085;
-      caja('cristal', [0.83, 0.66, 0.04], [3.52, 2.27, z], parent);
+      if (!ventanillaAbierta || lado > 0) caja('cristal', [0.83, 0.66, 0.04], [3.52, 2.27, z], parent);
       caja('negro', [0.19, 0.31, 0.12], [3.8, 2.12, lado * 1.22], parent);
       caja('blanco', [0.10, 0.18, 0.38], [4.13, 0.94, lado * 0.74], parent);
       caja('acero', [0.56, 0.12, 0.29], [3.11, 0.76, lado * 1.10], parent);
-      texto(parent, marca, [3.85, 0.96], [-1.05, 2.17, lado * 1.15]).rotation.y = lado > 0 ? 0 : Math.PI;
+      texto(parent, 'Tisnova', [3.85, 0.96], [-1.05, 2.17, lado * 1.15]).rotation.y = lado > 0 ? 0 : Math.PI;
       for (const x of [-3.3, -2.44, 1.68, 3.51]) {
         volumen(parent, 'neum', [0.89, 0.30, 0.89], [x, 0.45, lado * 0.97], rueda).rotation.x = Math.PI / 2;
         volumen(parent, 'acero', [0.49, 0.08, 0.49], [x, 0.45, lado * 1.14], rueda).rotation.x = Math.PI / 2;
@@ -142,17 +160,94 @@ export function construirMundo(escena: T.Scene, interior = false) {
     caja('blanco', [0.25, 0.10, 0.43], [x, 5.49, 21.03]);
   }
 
-  // Base de flota y despacho.
-  caja('cal', [12, 4.75, 8.2], [-28, 2.38, -4.7]);
-  caja('salvia', [12.5, 0.42, 8.7], [-28, 4.87, -4.7]);
-  caja('verde', [12.1, 0.61, 0.25], [-28, 3.89, -0.48]);
-  for (let x = -32.3; x <= -23.6; x += 2.8) {
-    caja('cristal', [1.74, 1.3, 0.07], [x, 2.39, -0.55]);
-    caja('acero', [0.08, 1.36, 0.11], [x, 2.39, -0.5]);
+  // La oficina ocupa la misma parcela en el encuadre interior y en la terminal.
+  const oficina = new T.Group();
+  const fachada = new T.Group();
+  const cubierta = new T.Group();
+  for (const grupo of [oficina, fachada, cubierta]) grupo.position.set(-28, 0, -4.7);
+  suelo.add(oficina);
+  escena.add(fachada, cubierta);
+  caja('hierba', [12, 0.24, 8.2], [0, 0.14, 0], oficina);
+  caja('cal', [12, 4.49, 0.22], [0, 2.5, -4], oficina);
+  caja('cal', [0.22, 4.49, 8.2], [-5.89, 2.5, 0], oficina);
+  caja('cal', [0.22, 4.49, 8.2], [5.89, 2.5, 0], fachada);
+  caja('cal', [12, 4.49, 0.22], [0, 2.5, 4], fachada);
+  caja('verde', [12.1, 0.61, 0.25], [0, 3.89, 4.22], fachada);
+  for (const x of [-4.3, -1.5, 1.3, 4.1]) {
+    caja('cristal', [1.74, 1.3, 0.07], [x, 2.39, 4.15], fachada);
+    caja('acero', [0.08, 1.36, 0.11], [x, 2.39, 4.18], fachada);
   }
-  texto(suelo, 'Tisnova', [5.1, 1.22], [-28, 3.89, -0.34], '#f5faec');
+  texto(fachada, 'Tisnova', [5.1, 1.22], [0, 3.89, 4.36], '#f5faec');
+  const tejadoOficina = caja('salvia', [12.5, 0.42, 8.7], [0, 4.95, 0], cubierta);
+  const acabadoCubierta = material('salvia').clone();
+  acabadoCubierta.transparent = true;
+  tejadoOficina.material = acabadoCubierta;
+
+  function cerrarOficina(progreso: number) {
+    fachada.visible = progreso > 0;
+    fachada.scale.y = Math.max(0.001, progreso);
+    cubierta.visible = progreso > 0;
+    cubierta.position.y = (1 - progreso) * 4.5;
+    cubierta.position.z = -4.7 - (1 - progreso) * 5;
+    acabadoCubierta.opacity = Math.min(1, progreso * 2.6);
+    tejadoOficina.castShadow = progreso === 1;
+  }
+
+  if (interior || transit) cerrarOficina(1);
+  else {
+    caja('tierra', [4.8, 0.16, 1.78], [-0.9, 1.39, 1.12], oficina);
+    for (const x of [-2.94, 1.14]) {
+      caja('madera', [0.12, 1.09, 1.42], [x, 0.82, 1.12], oficina);
+    }
+    caja('cal', [1.04, 0.025, 0.64], [-0.88, 1.48, 1.03], oficina);
+    for (const x of [-1.18, -0.88, -0.58]) caja('salvia', [0.17, 0.012, 0.18], [x, 1.497, 1.05], oficina);
+    for (const x of [-2.42, 0.58]) {
+      caja('metal', [0.78, 0.06, 0.55], [x, 1.49, 1.52], oficina);
+      caja('cristal', [0.78, 0.48, 0.07], [x, 1.72, 1.28], oficina).rotation.x = -0.14;
+    }
+    for (const x of [-3.67, -0.58]) {
+      caja('tierra', [2.48, 0.17, 1.28], [x, 1.39, -2.88], oficina);
+      caja('madera', [0.25, 1.06, 1.08], [x + 0.95, 0.79, -2.88], oficina);
+      caja('metal', [0.1, 1.06, 1.08], [x - 1.06, 0.79, -2.88], oficina);
+      caja('metal', [0.18, 0.29, 0.2], [x, 1.62, -3.2], oficina);
+      caja('cristal', [1.12, 0.63, 0.10], [x, 2, -3.2], oficina);
+      caja('cal', [0.71, 0.05, 0.31], [x, 1.5, -2.73], oficina);
+    }
+    caja('junta', [0.16, 2.3, 3.5], [2.3, 1.4, -2.35], oficina);
+    volumen(oficina, 'verde', [1.38, 2.85, 1.15], [4.23, 1.69, -3], redondo);
+    for (const y of [0.82, 1.21, 1.60, 1.99, 2.38, 2.77]) {
+      caja('cristal', [1.11, 0.25, 0.06], [4.23, y, -2.41], oficina);
+      caja('semaforo', [0.08, 0.05, 0.04], [3.8, y, -2.37], oficina);
+    }
+
+    function persona(x: number, z: number, giro: number, ropa: Tono) {
+      const grupo = new T.Group();
+      grupo.position.set(x, 0.25, z);
+      grupo.rotation.y = giro;
+      oficina.add(grupo);
+      volumen(grupo, 'salvia', [0.79, 0.16, 0.73], [0, 0.71, 0.07], redondo);
+      volumen(grupo, 'salvia', [0.78, 0.79, 0.14], [0, 1.05, 0.42], redondo);
+      caja('metal', [0.13, 0.64, 0.13], [0, 0.38, 0.07], grupo);
+      volumen(grupo, ropa, [0.54, 0.64, 0.32], [0, 1.12, 0], redondo);
+      volumen(grupo, 'piel', [0.4, 0.48, 0.39], [0, 1.68, -0.04], copa);
+      volumen(grupo, 'madera', [0.41, 0.22, 0.41], [0, 1.85, 0.01], copa);
+      for (const lado of [-1, 1]) {
+        volumen(grupo, 'negro', [0.24, 0.57, 0.24], [lado * 0.15, 0.48, -0.24], redondo);
+        volumen(grupo, ropa, [0.17, 0.20, 0.42], [lado * 0.28, 1.15, -0.23], redondo);
+        volumen(grupo, 'piel', [0.15, 0.13, 0.21], [lado * 0.28, 1.17, -0.45], redondo);
+      }
+    }
+
+    persona(-2.38, 2.75, -0.17, 'cal');
+    persona(0.58, 2.75, 0.22, 'bosque');
+    persona(-0.9, -0.49, Math.PI, 'salvia');
+  }
+
   for (let x = -36.8; x <= -15; x += 5.5) caja('carretera', [0.1, 0.012, 5.5], [x, 0.06, 5.3]);
-  for (const [x, z, giro, tono] of [[-31, 4.5, -0.14, 'salvia'], [-22.5, 7.9, Math.PI, 'verde'], [35.0, 8.3, Math.PI / 2, 'salvia']] as const) {
+  const aparcamiento = transit ? [] : interior
+    ? [[-31, 4.5, -0.14, 'salvia'], [-22.5, 7.9, Math.PI, 'verde']] as const
+    : [[-35.8, -3, -Math.PI / 2, 'salvia'], [-16.5, 7.9, Math.PI, 'verde']] as const;
+  for (const [x, z, giro, tono] of [...aparcamiento, [35.0, 8.3, Math.PI / 2, 'salvia'] as const]) {
     const estacionado = camion(tono);
     estacionado.position.set(x, 0.045, z);
     estacionado.rotation.y = giro;
@@ -218,7 +313,7 @@ export function construirMundo(escena: T.Scene, interior = false) {
       for (const y of [0.49, 1.90, 3.36]) {
         caja('salvia', [2.04, 0.10, 3.42], [x, y, z]);
         for (const dz of [-0.78, 0.86]) {
-          const hueco = interior && x === 17.3 && Math.abs(z - (-9.3)) < 0.001 && y === 1.90 && dz === -0.78;
+          const hueco = !transit && x === 17.3 && Math.abs(z - (-9.3)) < 0.001 && y === 1.90 && dz === -0.78;
           if (!hueco && Math.round((x + z + y + dz) * 13) % 7 !== 0) {
             const tono = Math.round((x + z + y + dz) * 10) % 2 === 0 ? 'carton' : 'cartonClaro';
             caja(tono, [1.58, 0.82, 1.36], [x, y + 0.46, z + dz]);
@@ -228,6 +323,11 @@ export function construirMundo(escena: T.Scene, interior = false) {
       }
     }
   }
+  const estanterias = tipo === 'terminal' ? aplicacionesMapa.map(({ posicion: [x, z] }) => {
+    const base = caja('lima', [3.4, 0.026, 4.15], [x, 0.253, z], escena);
+    base.visible = false;
+    return { base, anclaje: new T.Vector3(x, 5.4, z) };
+  }) : [];
   for (const x of [20.35, 25.65]) caja('carretera', [0.10, 0.015, 20.2], [x, 0.247, -7.0]);
   for (const x of [9.1, 12.2, 31.5, 35.9]) palet(x, 0.23, 0.65, true);
 
@@ -248,27 +348,38 @@ export function construirMundo(escena: T.Scene, interior = false) {
   caja('metal', [0.12, 0.08, 1.15], [0.37, 0.18, -1.55], horquillas);
   const entrada = new T.Group();
   const salida = new T.Group();
-  if (interior) {
+  const marcasAlmacen = new T.Group();
+  const cargaRuta = new T.Group();
+  horquillas.add(cargaRuta);
+  if (!transit) {
     for (const [grupo, z, nombre] of [[entrada, -0.28, 'RECEPCIÓN'], [salida, -13.5, 'PREPARACIÓN']] as const) {
       palet(0, 0, 0, true, grupo);
       caja('verde', [1.61, 0.018, 0.18], [0, 0.933, 0.31], grupo);
+      grupo.position.set(23, 0.24, z);
       escena.add(grupo);
-      for (const dx of [-1.3, 1.3]) caja('salvia', [0.055, 0.013, 2], [23 + dx, 0.248, z]);
-      for (const dz of [-1, 1]) caja('salvia', [2.60, 0.013, 0.055], [23, 0.248, z + dz]);
-      texto(suelo, nombre, [2.5, 0.48], [23, 0.265, z + 1.42]).rotation.x = -Math.PI / 2;
+      for (const dx of [-1.3, 1.3]) caja('salvia', [0.055, 0.013, 2], [23 + dx, 0.248, z], marcasAlmacen);
+      for (const dz of [-1, 1]) caja('salvia', [2.60, 0.013, 0.055], [23, 0.248, z + dz], marcasAlmacen);
+      texto(marcasAlmacen, nombre, [2.5, 0.48], [23, 0.265, z + 1.42]).rotation.x = -Math.PI / 2;
     }
-    texto(suelo, 'SALIDA', [2.8, 0.60], [26.8, 0.265, 3.48]).rotation.x = -Math.PI / 2;
-  } else {
-    palet(0, 0.23, -1.53, true, horquillas);
+    texto(marcasAlmacen, 'SALIDA', [2.8, 0.60], [26.8, 0.265, 3.48]).rotation.x = -Math.PI / 2;
+    marcasAlmacen.visible = interior;
+    escena.add(marcasAlmacen);
   }
+  if (!interior) palet(0, 0.23, -1.53, true, cargaRuta);
   escena.add(carretilla);
 
-  const tractor = camion('verde');
+  const tractor = camion('verde', transit || terminal);
   escena.add(tractor);
   agruparPiezas(suelo, escena);
 
+  const salidaOficina = interior
+    ? [new T.Vector3(-42, 0.057, 15.46), new T.Vector3(-25, 0.057, 15.46)]
+    : [new T.Vector3(-39.8, 0.057, -4.7), new T.Vector3(-39.8, 0.057, 1.8),
+       new T.Vector3(-39.8, 0.057, 8.4), new T.Vector3(-39.8, 0.057, 12.4),
+       new T.Vector3(-37.4, 0.057, 15.3), new T.Vector3(-33, 0.057, 15.46),
+       new T.Vector3(-25, 0.057, 15.46)];
   const ruta = new T.CatmullRomCurve3([
-    new T.Vector3(-42, 0.057, 15.46), new T.Vector3(-25, 0.057, 15.46),
+    ...salidaOficina,
     new T.Vector3(-14, 0.057, 15.46), new T.Vector3(-6, 0.057, 15.46),
     new T.Vector3(4, 0.057, 15.46), new T.Vector3(15.6, 0.057, 14.8),
     new T.Vector3(21.2, 0.057, 12), new T.Vector3(21.6, 0.057, 9.1),
@@ -279,6 +390,7 @@ export function construirMundo(escena: T.Scene, interior = false) {
     color: colores.lima, dashSize: 0.27, gapSize: 0.20, transparent: true, opacity: 0.9,
   }));
   linea.computeLineDistances();
+  linea.visible = !transit;
   escena.add(linea);
   const segmentos = 220;
   const carasPorSegmento = 5 * 6;
@@ -289,7 +401,7 @@ export function construirMundo(escena: T.Scene, interior = false) {
   escena.add(trazado);
 
   return {
-    techo, frente, tractor, carretilla, horquillas, entrada, salida, ruta,
+    techo, frente, tractor, carretilla, horquillas, entrada, salida, ruta, cerrarOficina, estanterias, marcasAlmacen, cargaRuta,
     trazar(progreso: number) {
       trazado.geometry.setDrawRange(0, Math.floor(progreso * segmentos) * carasPorSegmento);
     },

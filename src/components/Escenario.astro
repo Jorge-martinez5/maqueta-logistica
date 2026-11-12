@@ -1,19 +1,22 @@
 ---
+import type { TipoMaqueta } from '../scripts/maqueta/mundo';
+
 interface Props {
   etiqueta: string;
   paradas: { id: string; nombre: string }[];
-  interior?: boolean;
+  tipo?: TipoMaqueta;
 }
 
-const { etiqueta, paradas, interior = false } = Astro.props;
+const { etiqueta, paradas, tipo = 'terminal' } = Astro.props;
 ---
-<section class="maqueta" id="inicio" data-maqueta={interior ? 'interior' : 'terminal'} aria-label={etiqueta}>
+<section class="maqueta" id={tipo === 'terminal' ? undefined : 'inicio'} data-maqueta={tipo} aria-label={etiqueta}>
   <div class="maqueta-hud">
-    <nav class="maqueta-paradas" aria-label="Paradas de la maqueta">
+    <nav class="maqueta-paradas" aria-label="Paradas de la maqueta" data-hud-principal>
       {paradas.map(({ id, nombre }) => (
         <a href={`#${id}`} data-destino={id}><span aria-hidden="true"></span>{nombre}</a>
       ))}
     </nav>
+    <slot name="visitas-hud" />
   </div>
   <div class="maqueta-stage" aria-hidden="true">
     <canvas class="maqueta-canvas" data-canvas></canvas>

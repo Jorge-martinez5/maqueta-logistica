@@ -1,6 +1,10 @@
 ---
 import Escenario from './Escenario.astro';
+import Consultoria from './Consultoria.astro';
+import MapaAplicaciones from './MapaAplicaciones.astro';
+import RecorridoEscenas from './RecorridoEscenas.astro';
 import { productos } from '../data/negocio';
+import { recorridos } from '../data/recorridos';
 
 const paradas = [
   {
@@ -9,30 +13,41 @@ const paradas = [
     texto: 'Agrupad las cargas, asignad vehículos y organizad los viajes. TisTms comparte información con Business Central para que tráfico y administración trabajen sobre los mismos datos.',
   },
   {
-    id: 'tistransit', foto: '/maqueta/control.webp',
+    id: 'tistransit', foto: '/maqueta/control.webp', recorrido: '/tistransit/',
     titulo: 'Documentos en ruta.',
     texto: 'Preparad y compartid el DeCA y la hoja de ruta electrónica. El equipo de oficina y quien conduce pueden consultar los documentos del mismo servicio.',
   },
   {
-    id: 'tissga', foto: '/maqueta/almacen.webp',
+    id: 'tissga', foto: '/maqueta/almacen.webp', recorrido: '/sga/',
     titulo: 'Seguid cada palé.',
     texto: 'Registrad la entrada de la mercancía, asignadle una ubicación y seguid sus movimientos hasta la salida. TisSGA reúne esos datos para preparar la prefacturación.',
   },
 ].map((parada) => ({ ...parada, producto: productos.find(({ id }) => id === parada.id)! }));
 ---
-<Escenario etiqueta="Recorrido por el software logístico de Tisnova"
-  paradas={paradas.map(({ id, producto }) => ({ id, nombre: producto.nombre }))}>
-    <div class="maqueta-tramo" data-escena="inicio">
-      <img class="maqueta-foto" src="/maqueta/portada.webp" width="1440" height="823" alt="" fetchpriority="high" />
+<Escenario etiqueta="Recorrido por la consultoría y el software de Tisnova"
+  paradas={[...paradas.map(({ id, producto }) => ({ id, nombre: producto.nombre })), { id: 'aplicaciones', nombre: 'Mapa' }]}>
+    <Fragment slot="visitas-hud">
+      {Object.values(recorridos).map(({ tipo, imagenes, etiqueta, paradas }) => (
+        <nav class="maqueta-paradas" aria-label={etiqueta} data-hud-visita={tipo} hidden>
+          <a href="#aplicaciones"><span aria-hidden="true"></span>Mapa</a>
+          {paradas.map(({ id, nombre }) => (
+            <a href={`#${imagenes}-${id}`} data-destino={`${imagenes}-${id}`}><span aria-hidden="true"></span>{id === 'documento' ? 'DeCA' : id === 'comprobacion' ? 'Revisión' : nombre}</a>
+          ))}
+        </nav>
+      ))}
+    </Fragment>
+    <Consultoria />
+    <div class="maqueta-tramo" id="terminal" data-escena="terminal" tabindex="-1">
+      <img class="maqueta-foto" src="/maqueta/portada.webp" width="1440" height="823" alt="" loading="lazy" />
       <div class="maqueta-copy">
-        <p class="eyebrow" data-enter>Consultoría y software · Murcia</p>
-        <h1 data-enter>La logística,{' '}<br /><em>conectada.</em></h1>
-        <p data-enter>Un pedido sale de tráfico, pasa por el control documental y llega al almacén. Descubrid cómo Tisnova conecta cada paso.</p>
-        <a class="button" href="#tistms" data-enter>Empezar el recorrido <span aria-hidden="true">↓</span></a>
+        <p class="eyebrow">Software propio</p>
+        <h2>La logística,{' '}<br /><em>conectada.</em></h2>
+        <p>Un pedido sale de tráfico, pasa por el control documental y llega al almacén. Descubrid cómo Tisnova conecta cada paso.</p>
+        <a class="button" href="#tistms">Empezar el recorrido <span aria-hidden="true">↓</span></a>
       </div>
     </div>
-    {paradas.map(({ id, titulo, texto, foto, producto }) => (
-      <article class="maqueta-tramo" id={id} data-escena={id} aria-labelledby={`titulo-${id}`}>
+    {paradas.map(({ id, titulo, texto, foto, producto, recorrido }) => (
+      <article class="maqueta-tramo" id={id} data-escena={id} aria-labelledby={`titulo-${id}`} tabindex={id === 'tistms' ? '-1' : undefined}>
         <img class="maqueta-foto" src={foto} width="1440" height="823" alt="" loading="lazy" />
         <div class="maqueta-copy">
           <p class="maqueta-producto">
@@ -41,8 +56,26 @@ const paradas = [
           </p>
           <h2 id={`titulo-${id}`}>{titulo}</h2>
           <p>{texto}</p>
-          <a class="text-link" href={id === 'tissga' ? '/sga' : producto.url}>Conocer {producto.nombre} <span aria-hidden="true">↗</span></a>
+          {id === 'tissga' ? (
+            <div class="almacen-acciones">
+              <a class="button" href="#aplicaciones">Ver mapa de aplicaciones <span aria-hidden="true">↓</span></a>
+              <a class="text-link" href={recorrido} data-visita-destino="interior">Entrar en el almacén con TisSGA <span aria-hidden="true">↘</span></a>
+            </div>
+          ) : (
+            <a class="text-link" href={recorrido ?? producto.url} data-visita-destino={id === 'tistransit' ? 'transit' : undefined}>Conocer {producto.nombre} <span aria-hidden="true">↗</span></a>
+          )}
         </div>
       </article>
     ))}
+    <MapaAplicaciones />
+    {Object.values(recorridos).map((recorrido) => (
+      <div data-visita={recorrido.tipo} hidden>
+        <RecorridoEscenas recorrido={recorrido} integrado />
+      </div>
+    ))}
 </Escenario>
+
+<style>
+  .almacen-acciones { display: grid; justify-items: center; }
+  .almacen-acciones .text-link { margin-top: 12px; }
+</style>

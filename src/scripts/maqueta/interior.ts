@@ -29,16 +29,19 @@ function curva(t: number) {
   return t * t * (3 - 2 * t);
 }
 
-export function prepararInterior(mundo: ReturnType<typeof construirMundo>) {
+export function prepararInterior(mundo: ReturnType<typeof construirMundo>, integrado = false) {
   const { techo, frente, tractor, carretilla, horquillas, entrada, salida, ruta, trazar } = mundo;
-  techo.visible = false;
-  frente.visible = false;
-  ruta.getPointAt(0.99, tractor.position);
-  const tangente = ruta.getTangentAt(0.99);
-  tractor.rotation.y = Math.atan2(-tangente.z, tangente.x) + Math.PI;
-  trazar(0.99);
+  if (!integrado) {
+    techo.visible = false;
+    frente.visible = false;
+    ruta.getPointAt(0.99, tractor.position);
+    const tangente = ruta.getTangentAt(0.99);
+    tractor.rotation.y = Math.atan2(-tangente.z, tangente.x) + Math.PI;
+    trazar(0.99);
+  }
 
-  const camara = new T.PerspectiveCamera(54, 1, 0.22, 130);
+  const camara = integrado ? new T.OrthographicCamera(-1, 1, 1, -1, 0.1, 260)
+    : new T.PerspectiveCamera(54, 1, 0.22, 130);
   const foco = new T.Vector3();
   const local = new T.Vector3();
   const inicio = new T.Vector3();
@@ -59,6 +62,7 @@ export function prepararInterior(mundo: ReturnType<typeof construirMundo>) {
 
   return {
     camara,
+    foco,
     actualizar(avance: number, ancho: number, alto: number) {
       const paso = Math.min(Math.floor(avance), encuadres.length - 2);
       const a = encuadres[paso];
@@ -69,7 +73,16 @@ export function prepararInterior(mundo: ReturnType<typeof construirMundo>) {
       camara.lookAt(foco);
       const movil = ancho < 760;
       const fov = T.MathUtils.lerp(a.fov, b.fov, t);
-      camara.fov = movil ? Math.min(95, Math.max(fov + 18, 54 / (ancho / alto))) : fov;
+      const aspecto = ancho / alto;
+      if (camara instanceof T.PerspectiveCamera) {
+        camara.fov = movil ? Math.min(95, Math.max(fov + 18, 54 / aspecto)) : fov;
+      } else {
+        const vertical = 2 * camara.position.distanceTo(foco) * Math.tan(T.MathUtils.degToRad(fov / 2));
+        camara.top = vertical / 2 * (movil ? 0.72 + 0.57 / Math.max(0.4, aspecto) : 1);
+        camara.bottom = -camara.top;
+        camara.right = camara.top * aspecto;
+        camara.left = -camara.right;
+      }
       camara.setViewOffset(ancho, alto, movil ? 0 : -Math.round(ancho * 0.16), movil ? Math.round(alto * 0.17) : 0, ancho, alto);
 
       const indice = Math.min(maniobras.findLastIndex(([momento]) => momento <= avance), maniobras.length - 2);

@@ -1,0 +1,47 @@
+---
+import type { Recorrido } from '../data/recorridos';
+
+interface Props {
+  recorrido: Recorrido;
+  integrado?: boolean;
+}
+const { recorrido, integrado = false } = Astro.props;
+const { producto, inicio, sector, encabezado, introduccion, accion, imagenes, paradas } = recorrido;
+const idParada = (id: string) => integrado ? `${imagenes}-${id}` : id;
+const Titulo = integrado ? 'h2' : 'h1';
+---
+<div
+  class="maqueta-tramo"
+  id={integrado ? inicio : undefined}
+  data-escena={integrado ? inicio : 'inicio'}
+  aria-labelledby={integrado ? `titulo-${inicio}` : undefined}
+  tabindex={integrado ? '-1' : undefined}
+>
+  <img class="maqueta-foto" src={`/maqueta/${imagenes}-inicio.webp`} width="1440" height="823" alt="" loading={integrado ? 'lazy' : undefined} fetchpriority={integrado ? undefined : 'high'} />
+  <div class="maqueta-copy">
+    <p class="maqueta-producto" data-enter={!integrado ? true : undefined}><img src={`/productos/${producto.id}.svg`} width="28" height="28" alt="" /><strong>{producto.nombre}</strong><span>{sector}</span></p>
+    <Titulo id={integrado ? `titulo-${inicio}` : undefined} data-enter={!integrado ? true : undefined}>{encabezado[0]}{' '}<br /><em>{encabezado[1]}</em></Titulo>
+    <p data-enter={!integrado ? true : undefined}>{introduccion}</p>
+    <a class="button" href={`#${idParada(paradas[0].id)}`} data-enter={!integrado ? true : undefined}>{accion} <span aria-hidden="true">↓</span></a>
+  </div>
+</div>
+{paradas.map(({ id, nombre, titulo, texto }, indice) => (
+  <article class="maqueta-tramo" id={idParada(id)} data-escena={idParada(id)} aria-labelledby={`titulo-${idParada(id)}`} tabindex="-1">
+    <img class="maqueta-foto" src={`/maqueta/${imagenes}-${id}.webp`} width="1440" height="823" alt="" loading="lazy" />
+    <div class="maqueta-copy">
+      <p class="eyebrow">{nombre}</p>
+      <h2 id={`titulo-${idParada(id)}`}>{titulo}</h2>
+      <p>{texto}</p>
+      {indice === paradas.length - 1 && (
+        <div class="fin-recorrido">
+          {integrado && <a class="button" href="#aplicaciones"><span aria-hidden="true">↑</span> Volver al mapa</a>}
+          <a class="text-link" href={producto.url}>Ver la ficha de {producto.nombre} <span aria-hidden="true">↗</span></a>
+        </div>
+      )}
+    </div>
+  </article>
+))}
+
+<style>
+  .fin-recorrido { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0 14px; }
+</style>

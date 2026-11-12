@@ -1,0 +1,40 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Escenario from './Escenario.astro';
+import RecorridoEscenas from './RecorridoEscenas.astro';
+import { negocio } from '../data/negocio';
+import type { Recorrido } from '../data/recorridos';
+
+interface Props {
+  recorrido: Recorrido;
+}
+
+const { recorrido } = Astro.props;
+const { tipo, titulo, descripcion, etiqueta, paradas } = recorrido;
+const regreso = '/#aplicaciones';
+---
+<Layout title={titulo} description={descripcion}>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="/" aria-label="Tisnova, inicio"><img src={negocio.logo} alt="Tisnova" width="132" height="25" /></a>
+      <a class="sga-regreso" href={regreso}><span aria-hidden="true">←</span> <span>Volver al mapa</span></a>
+      <a class="header-cta" href="/#contacto">Hablemos <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+  <main id="contenido">
+    <Escenario tipo={tipo} etiqueta={etiqueta} paradas={paradas}>
+      <RecorridoEscenas recorrido={recorrido} />
+    </Escenario>
+  </main>
+  <footer class="site-footer">
+    <div class="wrap footer-inner">
+      <a href={regreso} class="text-link"><span aria-hidden="true">←</span> Volver al mapa</a>
+      <p>© {new Date().getFullYear()} {negocio.nombre}</p>
+      <a href={negocio.privacidad}>Privacidad</a>
+    </div>
+  </footer>
+</Layout>
+
+<script>
+  import '../scripts/web';
+</script>

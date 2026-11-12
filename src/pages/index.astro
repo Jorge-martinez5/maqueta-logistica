@@ -1,8 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Maqueta from '../components/Maqueta.astro';
-import { negocio, servicios, productos, proyectos, equipo, navegacion } from '../data/negocio';
-const otrasApps = productos.filter(({ id }) => !['tistms', 'tistransit', 'tissga'].includes(id));
+import { negocio, servicios, proyectos, equipo, navegacion } from '../data/negocio';
 ---
 <Layout>
   <header class="site-header">
@@ -26,37 +25,6 @@ const otrasApps = productos.filter(({ id }) => !['tistms', 'tistransit', 'tissga
   <main id="contenido">
     <Maqueta />
 
-    <section class="section services" id="servicios" aria-labelledby="services-title">
-      <div class="wrap chapter">
-        <p class="eyebrow">Servicios</p>
-        <h2 id="services-title" data-reveal>Vuestro equipo{' '}<br /><em>tecnológico.</em></h2>
-        <p class="section-intro">Empezamos por cómo trabajáis y vemos juntos qué conviene resolver primero.</p>
-        <div class="service-list">
-          {servicios.map(({ nombre, descripcion, url }) => (
-            <a class="service-link" href={url}>
-              <h3>{nombre} <span aria-hidden="true">↗</span></h3><p>{descripcion}</p>
-            </a>
-          ))}
-        </div>
-      </div>
-    </section>
-
-    <section class="section catalogo" aria-labelledby="catalogo-title">
-      <div class="wrap chapter">
-        <p class="eyebrow">Más software propio</p>
-        <h2 id="catalogo-title" data-reveal>También fuera{' '}<br /><em>de la terminal.</em></h2>
-        <div class="catalogo-list">
-          {otrasApps.map(({ id, nombre, sector, url }) => (
-            <a href={url} class="catalogo-link">
-              <img src={`/productos/${id}.svg`} width="34" height="34" alt="" loading="lazy" />
-              <strong>{nombre}</strong><span>{sector}</span>
-            </a>
-          ))}
-        </div>
-        <a class="text-link" href="https://chamartin.tisnova.es/">Ver el campeonato de Chamartín <span aria-hidden="true">↗</span></a>
-      </div>
-    </section>
-
     <section class="section projects" id="proyectos" aria-labelledby="projects-title">
       <div class="wrap chapter">
         <p class="eyebrow">Proyectos y colaboraciones</p>
@@ -69,6 +37,7 @@ const otrasApps = productos.filter(({ id }) => !['tistms', 'tistransit', 'tissga
             </a>
           ))}
         </div>
+        <a class="text-link proyecto-caso" href="https://chamartin.tisnova.es/">Ver el campeonato de Chamartín <span aria-hidden="true">↗</span></a>
       </div>
     </section>
 
@@ -82,6 +51,24 @@ const otrasApps = productos.filter(({ id }) => !['tistms', 'tistransit', 'tissga
             <figure><img src={foto} width={width} height={height} alt={`Retrato de ${nombre}`} loading="lazy" /><figcaption>{nombre}</figcaption></figure>
           ))}
         </div>
+      </div>
+    </section>
+
+    <section class="section servicios-empresa" id="servicios" aria-labelledby="servicios-titulo">
+      <div class="wrap chapter">
+        <p class="eyebrow">Servicios</p>
+        <h2 id="servicios-titulo">Vuestro equipo <em>tecnológico.</em></h2>
+        <p class="section-intro">Empezamos por cómo trabajáis y vemos juntos qué conviene resolver primero.</p>
+        <ul class="servicios-lista">
+          {servicios.map(({ nombre, descripcion, url }) => (
+            <li>
+              <a href={url}>
+                <h3>{nombre} <span aria-hidden="true">↗</span></h3>
+                <p>{descripcion}</p>
+              </a>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
 
@@ -112,3 +99,30 @@ const otrasApps = productos.filter(({ id }) => !['tistms', 'tistransit', 'tissga
 <script>
   import '../scripts/web';
 </script>
+
+<style>
+  .proyecto-caso { margin-top: 22px; }
+  .servicios-empresa { background: #f0f5ec; }
+  .servicios-lista {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 24px;
+    max-width: 740px;
+    margin: 32px auto 0;
+    text-align: left;
+  }
+  .servicios-lista a {
+    display: block;
+    height: 100%;
+    padding: 17px 4px 20px;
+    border-top: 1px solid #bbcfb9;
+  }
+  .servicios-lista h3 { color: var(--color-ink); font-size: 1.08rem; font-weight: 680; }
+  .servicios-lista a:hover h3 { color: var(--color-accent); }
+  .servicios-lista h3 span { margin-left: 4px; color: var(--color-accent); font-size: .75em; }
+  .servicios-lista p { margin-top: 5px; color: var(--muted); font-size: .9rem; line-height: 1.5; }
+
+  @media (max-width: 540px) {
+    .servicios-lista { grid-template-columns: 1fr; margin-top: 24px; }
+  }
+</style>

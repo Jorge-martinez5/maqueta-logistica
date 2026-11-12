@@ -1,0 +1,162 @@
+---
+import { aplicacionesMapa } from '../data/aplicaciones';
+import { productos } from '../data/negocio';
+---
+<section class="maqueta-tramo mapa-aplicaciones" id="aplicaciones" data-escena="aplicaciones" aria-labelledby="mapa-titulo" tabindex="-1">
+  <picture class="mapa-fondo">
+    <source media="(max-width: 720px)" srcset="/maqueta/aplicaciones-movil.webp" />
+    <img src="/maqueta/aplicaciones.webp" width="1440" height="823" alt="" loading="lazy" />
+  </picture>
+  <div class="mapa-copy">
+    <h2 id="mapa-titulo">Mapa de <em>aplicaciones.</em></h2>
+    <p>Elegid una aplicación en las estanterías para ver cómo funciona.</p>
+  </div>
+  <ul class="mapa-enlaces" aria-label="Aplicaciones de Tisnova">
+    {aplicacionesMapa.map(({ id, escritorio, movil, recorrido }) => {
+      const producto = productos.find((producto) => producto.id === id)!;
+      return (
+        <li>
+          <a
+            class="mapa-punto"
+            data-punto-aplicacion
+            data-visita-destino={id === 'tissga' ? 'interior' : id === 'tistransit' ? 'transit' : undefined}
+            data-fila={id === 'tisrural' || id === 'tisgame' ? 'superior' : undefined}
+            href={recorrido ?? producto.url}
+            aria-label={`${producto.nombre} · ${producto.sector}`}
+            style={`--mapa-x: ${escritorio[0]}%; --mapa-y: ${escritorio[1]}; --movil-x: ${movil[0]}%; --movil-y: ${movil[1]}`}
+          >
+            <img src={`/productos/${id}.svg`} width="18" height="18" alt="" loading="lazy" />
+            {producto.nombre}
+          </a>
+        </li>
+      );
+    })}
+  </ul>
+</section>
+
+<style>
+  .mapa-fondo {
+    position: absolute;
+    inset: 0 0 auto;
+    height: var(--escenario);
+    pointer-events: none;
+  }
+
+  .mapa-fondo img { width: 100%; height: 100%; object-fit: fill; }
+  :global(.maqueta-lista) .mapa-fondo { display: none; }
+
+  .mapa-copy {
+    z-index: 2;
+    width: clamp(254px, 30vw, 455px);
+    text-align: center;
+    pointer-events: auto;
+  }
+
+  .mapa-copy h2 { font-size: clamp(46px, 5.65vw, 84px); }
+  .mapa-copy p { margin: 18px auto 0; color: var(--muted); max-width: 31ch; }
+  .mapa-enlaces { list-style: none; opacity: var(--opacidad-puntos, 1); }
+
+  .mapa-punto {
+    position: absolute;
+    z-index: 3;
+    left: clamp(65px, var(--proyeccion-x, var(--mapa-x)), calc(100% - 65px));
+    top: calc(var(--proyeccion-y, var(--escenario) * var(--mapa-y)) + var(--desplazamiento-mapa, 0px) - var(--separacion-punto, 0px));
+    translate: -50% -100%;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid #acc2a9;
+    border-radius: 999px;
+    background: #fbfdf6;
+    color: var(--color-accent);
+    box-shadow: 0 4px 15px #1f342027;
+    font-size: .8rem;
+    font-weight: 700;
+    white-space: nowrap;
+    pointer-events: auto;
+  }
+
+  .mapa-punto::after {
+    content: '';
+    position: absolute;
+    top: calc(100% + var(--separacion-punto, 0px));
+    left: calc(50% - 4px);
+    border: 4px solid transparent;
+    border-top-color: #acc2a9;
+  }
+
+  .mapa-punto:hover, .mapa-punto:focus-visible {
+    z-index: 4;
+    border-color: var(--color-accent);
+    background: var(--color-accent);
+    color: white;
+  }
+
+  .mapa-punto:is(:hover, :focus-visible)::after { border-top-color: var(--color-accent); }
+
+  .mapa-punto[data-fila="superior"]::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    height: var(--separacion-punto, 0px);
+    border-left: 1px solid #acc2a9;
+  }
+
+  @media (720px < width <= 1120px), (width > 720px) and (height <= 620px) {
+    .mapa-punto[data-fila="superior"] { --separacion-punto: 14px; }
+  }
+
+  @media (max-width: 720px) {
+    .mapa-aplicaciones { align-items: flex-start; padding-top: clamp(210px, min(59svh, var(--escenario) - 155px), 520px); }
+    .mapa-copy { width: min(100%, 450px); }
+    .mapa-copy h2 { font-size: clamp(33px, 9.5vw, 52px); }
+    .mapa-copy p { margin-top: 12px; font-size: .88rem; }
+    .mapa-punto {
+      left: clamp(49px, var(--proyeccion-x, var(--movil-x)), calc(100% - 49px));
+      top: calc(var(--proyeccion-y, var(--escenario) * var(--movil-y)) + var(--desplazamiento-mapa, 0px) - var(--separacion-punto, 0px));
+      gap: 5px;
+      padding-inline: 8px;
+      font-size: .72rem;
+    }
+    .mapa-punto img { width: 16px; height: 16px; }
+  }
+
+  @media (max-width: 500px) {
+    .mapa-punto[data-fila="superior"] { --separacion-punto: clamp(0px, (500px - 100vw) * .17, 24px); }
+  }
+
+  @media (max-height: 500px) {
+    .mapa-aplicaciones {
+      display: grid;
+      align-content: start;
+      justify-items: center;
+      gap: 16px;
+      padding: 20px var(--gutter) 88px;
+      background: #eef3e9;
+    }
+    .mapa-aplicaciones::before { display: none; }
+    .mapa-fondo, :global(.maqueta-lista) .mapa-fondo {
+      position: static;
+      display: block;
+      width: min(100%, 420px);
+      height: clamp(104px, 48svh, 180px);
+      overflow: hidden;
+      border-radius: 10px;
+    }
+    .mapa-fondo img { object-fit: cover; object-position: 50% 28%; }
+    .mapa-copy { order: -1; width: min(100%, 420px); }
+    .mapa-copy h2 { font-size: clamp(30px, 6vw, 42px); }
+    .mapa-copy p { margin-top: 8px; }
+    .mapa-enlaces {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      width: min(100%, 420px);
+    }
+    .mapa-punto { position: relative; inset: auto; translate: none; justify-content: center; }
+    .mapa-punto::before, .mapa-punto::after { display: none; }
+  }
+</style>
