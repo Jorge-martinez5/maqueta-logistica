@@ -1,0 +1,42 @@
+---
+import '@fontsource-variable/archivo';
+import '@fontsource/instrument-serif/latin-400-italic.css';
+import '../styles/global.css';
+import { negocio } from '../data/negocio';
+
+const {
+  title = 'Tisnova | Consultoría tecnológica, software y soporte en Murcia',
+  description = negocio.descripcion,
+} = Astro.props;
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'ProfessionalService',
+  name: negocio.nombre,
+  url: negocio.web,
+  email: negocio.email,
+  telephone: negocio.telefono,
+  address: {
+    '@type': 'PostalAddress',
+    addressLocality: 'Molina de Segura',
+    addressRegion: 'Murcia',
+    addressCountry: 'ES',
+  },
+};
+---
+<!doctype html>
+<html lang="es" data-type="software">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#fafbf6" />
+    <meta name="page-type" content="software" />
+    <meta name="site-kind" content="software" />
+    <title>{title}</title>
+    <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
+  </head>
+  <body>
+    <a class="skip-link" href="#contenido">Saltar al contenido</a>
+    <slot />
+  </body>
+</html>

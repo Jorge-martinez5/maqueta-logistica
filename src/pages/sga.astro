@@ -1,0 +1,56 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Escenario from '../components/Escenario.astro';
+import { negocio, productos } from '../data/negocio';
+
+const producto = productos.find(({ id }) => id === 'tissga')!;
+const paradas = [
+  { id: 'recepcion', nombre: 'Recepción', titulo: 'Registrad la entrada.', texto: 'En el muelle se identifica la mercancía que acaba de llegar. Con su referencia registrada, podéis consultar qué ha entrado y preparar su traslado a una ubicación.' },
+  { id: 'ubicacion', nombre: 'Ubicación', titulo: 'Un sitio para cada palé.', texto: 'La carretilla lleva el palé hasta su hueco. TisSGA registra el movimiento y la ubicación para que el equipo pueda localizarlo cuando lo necesite.' },
+  { id: 'salida', nombre: 'Salida', titulo: 'Preparad la expedición.', texto: 'Otro palé sale de la zona de almacenamiento hacia el muelle. El registro de movimientos permite seguir la mercancía y preparar la prefacturación de los servicios de almacén.' },
+];
+---
+<Layout title="TisSGA | Dentro del almacén de Tisnova" description="Recorrido 3D por la recepción, la ubicación y la expedición de mercancía con TisSGA.">
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="/" aria-label="Tisnova, inicio"><img src={negocio.logo} alt="Tisnova" width="132" height="25" /></a>
+      <a class="sga-regreso" href="/#tissga"><span aria-hidden="true">←</span> <span>Volver a la terminal</span></a>
+      <a class="header-cta" href="/#contacto">Hablemos <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+  <main id="contenido">
+    <Escenario interior etiqueta="Recorrido por el interior del almacén con TisSGA" paradas={paradas}>
+      <div class="maqueta-tramo" data-escena="inicio">
+        <img class="maqueta-foto" src="/maqueta/sga-inicio.webp" width="1440" height="823" alt="" fetchpriority="high" />
+        <div class="maqueta-copy">
+          <p class="maqueta-producto" data-enter><img src="/productos/tissga.svg" width="28" height="28" alt="" /><strong>TisSGA</strong><span>Gestión de almacén</span></p>
+          <h1 data-enter>Dentro del{' '}<br /><em>almacén.</em></h1>
+          <p data-enter>Seguid la mercancía desde que entra por el muelle hasta que queda lista para salir.</p>
+          <a class="button" href="#recepcion" data-enter>Entrar en la nave <span aria-hidden="true">↓</span></a>
+        </div>
+      </div>
+      {paradas.map(({ id, nombre, titulo, texto }) => (
+        <article class="maqueta-tramo" id={id} data-escena={id} aria-labelledby={`titulo-${id}`}>
+          <img class="maqueta-foto" src={`/maqueta/sga-${id}.webp`} width="1440" height="823" alt="" loading="lazy" />
+          <div class="maqueta-copy">
+            <p class="eyebrow">{nombre}</p>
+            <h2 id={`titulo-${id}`}>{titulo}</h2>
+            <p>{texto}</p>
+            {id === 'salida' && <a class="text-link" href={producto.url}>Ver la ficha de TisSGA <span aria-hidden="true">↗</span></a>}
+          </div>
+        </article>
+      ))}
+    </Escenario>
+  </main>
+  <footer class="site-footer">
+    <div class="wrap footer-inner">
+      <a href="/#tissga" class="text-link"><span aria-hidden="true">←</span> Volver a la terminal</a>
+      <p>© {new Date().getFullYear()} {negocio.nombre}</p>
+      <a href={negocio.privacidad}>Privacidad</a>
+    </div>
+  </footer>
+</Layout>
+
+<script>
+  import '../scripts/web';
+</script>

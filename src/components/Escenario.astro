@@ -1,0 +1,24 @@
+---
+interface Props {
+  etiqueta: string;
+  paradas: { id: string; nombre: string }[];
+  interior?: boolean;
+}
+
+const { etiqueta, paradas, interior = false } = Astro.props;
+---
+<section class="maqueta" id="inicio" data-maqueta={interior ? 'interior' : 'terminal'} aria-label={etiqueta}>
+  <div class="maqueta-hud">
+    <nav class="maqueta-paradas" aria-label="Paradas de la maqueta">
+      {paradas.map(({ id, nombre }) => (
+        <a href={`#${id}`} data-destino={id}><span aria-hidden="true"></span>{nombre}</a>
+      ))}
+    </nav>
+  </div>
+  <div class="maqueta-stage" aria-hidden="true">
+    <canvas class="maqueta-canvas" data-canvas></canvas>
+  </div>
+  <div class="maqueta-capitulos">
+    <slot />
+  </div>
+</section>
