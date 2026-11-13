@@ -37,6 +37,7 @@ const foto = (id: string) => `/maqueta/${imagenes}-${id}.webp`;
       <p>{texto}</p>
       {indice === paradas.length - 1 && (
         <div class="fin-recorrido">
+          {integrado && <a class="text-link" href={`#${inicio}`}>Repetir recorrido <span aria-hidden="true">↑</span></a>}
           {integrado && <a class="button" href="#aplicaciones"><span aria-hidden="true">↑</span> Volver al mapa</a>}
           <a class="text-link" href={producto.url}>Ver la ficha de {producto.nombre} <span aria-hidden="true">↗</span></a>
         </div>

@@ -88,6 +88,7 @@ export const equipo = [
 export const navegacion = [
   { nombre: 'Aplicaciones', href: '#aplicaciones' },
   { nombre: 'Servicios', href: '#servicios' },
+  { nombre: 'Productos', href: '#productos' },
   { nombre: 'Proyectos', href: '#proyectos' },
   { nombre: 'Equipo', href: '#equipo' },
 ];

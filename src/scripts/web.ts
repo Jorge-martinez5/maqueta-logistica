@@ -99,12 +99,21 @@ if (visitas.length) {
 }
 
 const motion = gsap.matchMedia();
+const controlMovimiento = document.querySelector<HTMLButtonElement>('[data-motion-toggle]');
+let animacionesPausadas = false;
+controlMovimiento?.addEventListener('click', () => {
+  animacionesPausadas = !animacionesPausadas;
+  controlMovimiento.setAttribute('aria-pressed', String(animacionesPausadas));
+  controlMovimiento.textContent = animacionesPausadas ? 'Activar animaciones' : 'Pausar animaciones';
+  gsap.matchMediaRefresh();
+});
+
 
 motion.add({
   normal: '(prefers-reduced-motion: no-preference)',
   escritorio: '(min-width: 921px) and (pointer: fine)',
 }, ({ conditions }) => {
-  if (!conditions?.normal || !maqueta || !canvas || escenas.length < 2) return;
+  if (animacionesPausadas || !conditions?.normal || !maqueta || !canvas || escenas.length < 2) return;
   const tipo = maqueta.dataset.maqueta;
 
   let motor: ReturnType<typeof prepararMaqueta> = null;

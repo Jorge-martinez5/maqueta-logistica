@@ -1,7 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Maqueta from '../components/Maqueta.astro';
-import { negocio, servicios, proyectos, equipo, navegacion } from '../data/negocio';
+import { negocio, servicios, proyectos, equipo, navegacion, productos } from '../data/negocio';
 ---
 <Layout>
   <header class="site-header">
@@ -24,6 +24,26 @@ import { negocio, servicios, proyectos, equipo, navegacion } from '../data/negoc
 
   <main id="contenido">
     <Maqueta />
+
+    <section class="section catalogo" id="productos" aria-labelledby="productos-titulo">
+      <div class="wrap chapter">
+        <h2 id="productos-titulo">Conoced cada <em>aplicación.</em></h2>
+        <p class="section-intro">Explorad el recorrido y consultad las funciones de cada producto.</p>
+        <div class="catalogo-lista">
+          {productos.map((producto) => {
+            const visitas = { tistms: 'tms', tissga: 'interior', tistransit: 'transit', tistime: 'time', tisrural: 'rural', tisgame: 'game' };
+            return <article>
+              <h3><img src={`/productos/${producto.id}.svg`} width="26" height="26" alt="" loading="lazy" />{producto.nombre}</h3>
+              <p>{producto.descripcion}</p>
+              <div class="catalogo-acciones">
+                <a class="text-link" href="#aplicaciones" data-visita-destino={visitas[producto.id]}>Ver recorrido</a>
+                <a class="text-link" href={producto.url}>Funciones de {producto.nombre} <span aria-hidden="true">↗</span></a>
+              </div>
+            </article>;
+          })}
+        </div>
+      </div>
+    </section>
 
     <section class="section projects" id="proyectos" aria-labelledby="projects-title">
       <div class="wrap chapter">
@@ -91,7 +111,7 @@ import { negocio, servicios, proyectos, equipo, navegacion } from '../data/negoc
     <div class="wrap footer-inner">
       <a href="#inicio" class="brand"><img src={negocio.logo} alt="Tisnova" width="104" height="20" /></a>
       <p>© {new Date().getFullYear()} {negocio.nombre}</p>
-      <div><a href={negocio.privacidad}>Privacidad</a><a href={negocio.legal}>Aviso legal</a></div>
+      <div><a href={negocio.privacidad}>Privacidad</a><a href={negocio.legal}>Aviso legal</a><a href="https://tisnova.es/politica-de-cookies">Cookies</a><button type="button" data-motion-toggle aria-pressed="false">Pausar animaciones</button></div>
     </div>
   </footer>
 </Layout>
@@ -101,6 +121,14 @@ import { negocio, servicios, proyectos, equipo, navegacion } from '../data/negoc
 </script>
 
 <style>
+  [data-motion-toggle] { cursor: pointer; color: inherit; font: inherit; background: transparent; border: 1px solid #bbcfb9; border-radius: 8px; padding: 6px 10px; }
+  .catalogo { background: #f6f8f0; }
+  .catalogo-lista { max-width: 900px; margin: 36px auto 0; text-align: left; }
+  .catalogo-lista article { padding: 24px 0; border-top: 1px solid #bbcfb9; }
+  .catalogo-lista h3 { display: flex; align-items: center; gap: 10px; font-size: 1.3rem; }
+  .catalogo-lista p { margin-top: 12px; max-width: 65ch; color: var(--muted); }
+  .catalogo-acciones { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 16px; }
+
   .proyecto-caso { margin-top: 22px; }
   .servicios-empresa { background: #f0f5ec; }
   .servicios-lista {
