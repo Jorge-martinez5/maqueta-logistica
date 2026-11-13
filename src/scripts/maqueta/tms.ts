@@ -86,7 +86,7 @@ export function crearPantallaTms() {
   };
 }
 
-export function prepararTms(pantalla: ReturnType<typeof crearPantallaTms>, monitor: T.Vector3) {
+export function prepararVisitaMonitor(pantalla: { actualizar(avance: number): void }, monitor: T.Vector3, rural = false) {
   const camara = new T.OrthographicCamera(-1, 1, 1, -1, 0.03, 260);
   const foco = new T.Vector3();
   const encuadres = [
@@ -103,7 +103,13 @@ export function prepararTms(pantalla: ReturnType<typeof crearPantallaTms>, monit
       const t = T.MathUtils.smoothstep(avance, 0, 1);
       const [a, b] = encuadres;
       foco.copy(monitor).add(vista.set(...a.centro).lerp(destino.set(...b.centro), t));
-      camara.position.copy(foco).add(vista.set(...a.vista).lerp(destino.set(...b.vista), t));
+      vista.set(...a.vista).lerp(destino.set(...b.vista), t);
+      if (rural) {
+        foco.z = 2 * monitor.z - foco.z;
+        vista.x *= 0.88;
+        vista.z *= -1;
+      }
+      camara.position.copy(foco).add(vista);
       const aspecto = ancho / alto;
       const vertical = T.MathUtils.lerp(a.alto, b.alto, t);
       const horizontal = matchMedia('(max-height: 500px) and (min-aspect-ratio: 7/5)').matches;

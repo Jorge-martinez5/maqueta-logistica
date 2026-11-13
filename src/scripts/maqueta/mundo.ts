@@ -3,14 +3,18 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import { aplicacionesMapa } from '../../data/aplicaciones';
 import { crearPlano } from './plano';
 import { crearPantallaTms } from './tms';
+import { crearPantallaRural } from './rural';
+import { crearPantallaTime } from './time';
 
 const colores = {
   cal: 0xf8f8ed, blanco: 0xfffff6, hormigon: 0xd6dbcc, junta: 0xb9c5b1,
-  verde: 0x245943, salvia: 0x78a476, lima: 0xaed47d, bosque: 0x40674e,
-  hoja: 0x7ca669, hierba: 0xb1c49c, tierra: 0xc1af8b, carton: 0xcfa46d,
+  verde: 0x245943, salvia: 0x7d9b7f, lima: 0xaed47d, bosque: 0x40674e,
+  hoja: 0x77996a, hierba: 0xb4bfa2, tierra: 0xc1af8b, carton: 0xcfa46d,
   cartonClaro: 0xe3bd86, madera: 0x92704a, metal: 0x65756c, acero: 0xa6b4ab,
   cristal: 0x294039, neum: 0x27302a, asfalto: 0x778780, carretera: 0xecebd9,
   arena: 0xe5e7d7, negro: 0x233528, semaforo: 0xc4f398, piel: 0xd6a77d,
+  cubierta: 0xcdd0c4, faro: 0xfff4d2, piloto: 0xc8503e, llanta: 0xd9ded6, musgo: 0x5e8c55,
+  cedro: 0xa5754b, cedroClaro: 0xb78356, terracota: 0x9c6551, laton: 0xc39952,
 };
 
 type Tono = keyof typeof colores;
@@ -23,9 +27,16 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
   const transit = tipo === 'transit';
   const terminal = tipo === 'terminal';
   const cubo = new T.BoxGeometry(1, 1, 1);
+  // Marca de pieza biselada: volumen() la sustituye por un bisel fino de medida real.
   const redondo = new RoundedBoxGeometry(1, 1, 1, 2, 0.075);
+  const biseles = new Map<string, RoundedBoxGeometry>();
   const rueda = new T.CylinderGeometry(0.5, 0.5, 1, 18);
-  const copa = new T.IcosahedronGeometry(0.5, 1);
+  const neumatico = new T.CylinderGeometry(0.5, 0.5, 1, 32);
+  const aro = new T.TorusGeometry(0.36, 0.07, 10, 28);
+  const guardabarros = new T.CylinderGeometry(0.5, 0.5, 1, 20, 1, true, Math.PI / 2, Math.PI);
+  const deposito = new T.CylinderGeometry(0.5, 0.5, 1, 20);
+  const tronco = new T.CylinderGeometry(0.075, 0.15, 1, 8);
+  const copaSuave = new T.IcosahedronGeometry(0.5, 2);
   const suelo = new T.Group();
   const materiales = new Map<Tono, T.MeshStandardMaterial>();
   const rotulos: (() => void)[] = [];
@@ -37,15 +48,29 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
         roughness: tono === 'cristal' ? 0.43 : 0.82,
         metalness: tono === 'metal' || tono === 'acero' ? 0.12 : 0,
         ...(tono === 'semaforo' ? { emissive: 0x90bf50, emissiveIntensity: 0.66 } : {}),
+        ...(tono === 'faro' ? { emissive: 0xfff0c0, emissiveIntensity: 0.9 } : {}),
+        ...(tono === 'piloto' ? { emissive: 0xb03a2a, emissiveIntensity: 0.5 } : {}),
+        ...(tono === 'llanta' ? { roughness: 0.45, metalness: 0.35 } : {}),
       }));
     }
     return materiales.get(tono)!;
   }
 
-  function volumen(parent: T.Object3D, tono: Tono, tamaño: Posicion, posicion: Posicion, geometria = cubo) {
-    const objeto = new T.Mesh(geometria, material(tono));
+  // Bisel de radio fijo: escalar un cubo redondeado unitario deformaba las esquinas en óvalos de juguete.
+  function biselada(tamaño: Posicion) {
+    const clave = tamaño.map((medida) => medida.toFixed(3)).join('x');
+    if (!biseles.has(clave)) {
+      const radio = Math.min(0.07, Math.min(...tamaño) * 0.22);
+      biseles.set(clave, new RoundedBoxGeometry(...tamaño, 3, radio));
+    }
+    return biseles.get(clave)!;
+  }
+
+  function volumen(parent: T.Object3D, tono: Tono, tamaño: Posicion, posicion: Posicion, geometria: T.BufferGeometry = cubo) {
+    const bisel = geometria === redondo;
+    const objeto = new T.Mesh(bisel ? biselada(tamaño) : geometria, material(tono));
     objeto.position.set(...posicion);
-    objeto.scale.set(...tamaño);
+    if (!bisel) objeto.scale.set(...tamaño);
     objeto.castShadow = tamaño[1] > 0.07;
     objeto.receiveShadow = true;
     parent.add(objeto);
@@ -95,12 +120,18 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
 
   function camion(tono: Tono, ventanillaAbierta = false) {
     const parent = new T.Group();
-    caja('negro', [8.3, 0.24, 1.85], [0, 0.68, 0], parent);
+    // Chasis y semirremolque con perfiles de esquina, faldones y pilotos.
+    caja('negro', [8.3, 0.22, 1.7], [0, 0.66, 0], parent);
     volumen(parent, 'blanco', [6.1, 2.36, 2.27], [-1.06, 2.00, 0], redondo);
-    caja('salvia', [5.98, 0.20, 2.29], [-1.07, 0.99, 0], parent);
+    caja('salvia', [6.0, 0.2, 2.3], [-1.07, 0.99, 0], parent);
+    for (const x of [-4.1, 1.98]) for (const z of [-1.12, 1.12]) caja('acero', [0.08, 2.3, 0.08], [x, 2.0, z], parent);
+    caja('acero', [6.12, 0.06, 2.3], [-1.06, 3.17, 0], parent);
+    for (const z of [-0.75, 0.75]) caja('piloto', [0.06, 0.16, 0.34], [-4.17, 0.98, z], parent);
+    caja('metal', [0.12, 0.17, 1.99], [-4.17, 0.74, 0], parent);
+    // Cabina con deflector, rejilla, faros y retrovisores.
     if (ventanillaAbierta) {
       volumen(parent, tono, [2.06, 1.12, 2.13], [3.11, 1.18, 0], redondo);
-      volumen(parent, tono, [2.06, 0.21, 2.13], [3.11, 2.86, 0], redondo);
+      volumen(parent, tono, [2.06, 0.24, 2.13], [3.11, 2.86, 0], redondo);
       caja(tono, [0.16, 1.05, 2.1], [2.17, 2.25, 0], parent);
       caja(tono, [0.18, 1.05, 0.13], [4.05, 2.25, -0.99], parent);
       caja(tono, [0.18, 1.05, 0.13], [4.05, 2.25, 0.99], parent);
@@ -111,23 +142,30 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
     } else {
       volumen(parent, tono, [2.06, 2.31, 2.13], [3.11, 1.78, 0], redondo);
     }
-    volumen(parent, 'negro', [0.27, 0.33, 2.18], [4.04, 0.66, 0], redondo);
-    caja('cristal', [0.08, 0.74, 1.82], [4.09, 2.27, 0], parent);
-    caja('metal', [0.09, 0.52, 1.65], [4.1, 1.12, 0], parent);
+    volumen(parent, tono, [1.15, 0.5, 2.0], [2.62, 3.12, 0], redondo).rotation.z = 0.32;
+    volumen(parent, 'negro', [0.3, 0.36, 2.2], [4.06, 0.66, 0], redondo);
+    caja('cristal', [0.08, 0.74, 1.82], [4.11, 2.27, 0], parent);
+    caja(tono, [0.1, 0.07, 1.9], [4.13, 2.68, 0], parent);
+    caja('negro', [0.06, 0.56, 1.3], [4.15, 1.22, 0], parent);
+    for (const y of [1.0, 1.14, 1.28, 1.42]) caja('acero', [0.05, 0.05, 1.24], [4.18, y, 0], parent);
     for (const lado of [-1, 1]) {
       const z = lado * 1.085;
       if (!ventanillaAbierta || lado > 0) caja('cristal', [0.83, 0.66, 0.04], [3.52, 2.27, z], parent);
-      caja('negro', [0.19, 0.31, 0.12], [3.8, 2.12, lado * 1.22], parent);
-      caja('blanco', [0.10, 0.18, 0.38], [4.13, 0.94, lado * 0.74], parent);
-      caja('acero', [0.56, 0.12, 0.29], [3.11, 0.76, lado * 1.10], parent);
+      caja('metal', [0.05, 0.05, 0.22], [3.92, 2.42, lado * 1.17], parent);
+      volumen(parent, 'negro', [0.12, 0.42, 0.14], [3.95, 2.18, lado * 1.3], redondo);
+      volumen(parent, 'faro', [0.08, 0.15, 0.36], [4.17, 0.96, lado * 0.76], redondo);
+      caja('negro', [0.03, 0.9, 0.02], [2.55, 1.6, lado * 1.07], parent);
+      volumen(parent, 'acero', [0.74, 0.36, 0.36], [2.62, 0.72, lado * 0.92], deposito).rotation.z = Math.PI / 2;
+      caja('negro', [0.5, 0.05, 0.22], [3.2, 0.5, lado * 1.02], parent);
+      caja('acero', [3.1, 0.34, 0.05], [-0.4, 0.62, lado * 1.1], parent);
       texto(parent, 'Tisnova', [3.85, 0.96], [-1.05, 2.17, lado * 1.15]).rotation.y = lado > 0 ? 0 : Math.PI;
       for (const x of [-3.3, -2.44, 1.68, 3.51]) {
-        volumen(parent, 'neum', [0.89, 0.30, 0.89], [x, 0.45, lado * 0.97], rueda).rotation.x = Math.PI / 2;
-        volumen(parent, 'acero', [0.49, 0.08, 0.49], [x, 0.45, lado * 1.14], rueda).rotation.x = Math.PI / 2;
+        volumen(parent, 'neum', [0.9, 0.32, 0.9], [x, 0.45, lado * 0.97], neumatico).rotation.x = Math.PI / 2;
+        volumen(parent, 'llanta', [0.74, 0.74, 0.5], [x, 0.45, lado * 1.13], aro).castShadow = false;
+        volumen(parent, 'metal', [0.22, 0.06, 0.22], [x, 0.45, lado * 1.14], rueda).rotation.x = Math.PI / 2;
+        volumen(parent, x > 0 ? tono : 'negro', [1.08, 0.36, 1.08], [x, 0.47, lado * 0.97], guardabarros).rotation.x = Math.PI / 2;
       }
     }
-    caja('acero', [0.06, 2.06, 0.05], [-4.12, 1.98, 0], parent);
-    caja('metal', [0.12, 0.17, 1.99], [-4.17, 0.74, 0], parent);
     return parent;
   }
 
@@ -143,12 +181,17 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
   }
 
   function arbol(x: number, z: number, tamaño: number) {
-    caja('madera', [0.26, 1.2 * tamaño, 0.26], [x, 0.60 * tamaño, z]);
+    volumen(suelo, 'madera', [1, 1.35 * tamaño, 1], [x, 0.68 * tamaño, z], tronco);
+    const variacion = Math.abs(Math.sin(x * 12.9 + z * 78.2));
     for (const [dx, y, dz, escala, tono] of [
-      [0, 1.95, 0, 2.15, 'hoja'], [-0.49, 1.66, -0.18, 1.6, 'salvia'], [0.58, 1.72, 0.2, 1.4, 'bosque'],
+      [0, 2.05, 0, 1.95, 'hoja'], [-0.5, 1.72, -0.22, 1.45, 'salvia'], [0.56, 1.78, 0.18, 1.35, 'bosque'],
+      [0.12, 2.6, 0.12, 1.2, 'musgo'], [-0.2, 1.6, 0.48, 1.1, 'hoja'],
     ] as const) {
-      const a = escala * tamaño;
-      volumen(suelo, tono, [a, a * 0.79, a], [x + dx * tamaño, y * tamaño, z + dz * tamaño], copa);
+      const a = escala * tamaño * (0.92 + variacion * 0.16);
+      volumen(suelo, tono, [a, a * 0.82, a], [x + dx * tamaño, y * tamaño, z + dz * tamaño], copaSuave).rotation.y = variacion * 6;
+    }
+    for (const lado of [-1, 1]) {
+      volumen(suelo, 'salvia', [0.75 * tamaño, 0.45 * tamaño, 0.6 * tamaño], [x + lado * 1.3 * tamaño, 0.42, z + 0.4 * lado], copaSuave);
     }
   }
 
@@ -175,12 +218,14 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
   }
 
   for (const x of [-32, -14, 12, 36]) {
-    caja('metal', [0.12, 5.5, 0.12], [x, 2.8, 22.15]);
-    caja('metal', [0.20, 0.11, 1.3], [x, 5.55, 21.62]);
-    caja('blanco', [0.25, 0.10, 0.43], [x, 5.49, 21.03]);
+    volumen(suelo, 'junta', [0.5, 0.3, 0.5], [x, 0.3, 22.15], deposito);
+    volumen(suelo, 'metal', [0.16, 5.5, 0.16], [x, 2.85, 22.15], deposito);
+    caja('metal', [0.1, 0.1, 1.25], [x, 5.6, 21.6]);
+    volumen(suelo, 'blanco', [0.34, 0.14, 0.6], [x, 5.52, 21.0], redondo);
+    caja('faro', [0.22, 0.03, 0.42], [x, 5.44, 21.0]);
   }
 
-  function persona(parent: T.Group, x: number, z: number, giro: number, ropa: Tono) {
+  function persona(parent: T.Group, x: number, z: number, giro: number, ropa: Tono, moño = false) {
     const grupo = new T.Group();
     grupo.position.set(x, 0.25, z);
     grupo.rotation.y = giro;
@@ -188,14 +233,21 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
     volumen(grupo, 'salvia', [0.79, 0.16, 0.73], [0, 0.71, 0.07], redondo);
     volumen(grupo, 'salvia', [0.78, 0.79, 0.14], [0, 1.05, 0.42], redondo);
     caja('metal', [0.13, 0.64, 0.13], [0, 0.38, 0.07], grupo);
-    volumen(grupo, ropa, [0.54, 0.64, 0.32], [0, 1.12, 0], redondo);
-    volumen(grupo, 'piel', [0.4, 0.48, 0.39], [0, 1.68, -0.04], copa);
-    volumen(grupo, 'madera', [0.41, 0.22, 0.41], [0, 1.85, 0.01], copa);
-    for (const lado of [-1, 1]) {
-      volumen(grupo, 'negro', [0.24, 0.57, 0.24], [lado * 0.15, 0.48, -0.24], redondo);
-      volumen(grupo, ropa, [0.17, 0.20, 0.42], [lado * 0.28, 1.15, -0.23], redondo);
-      volumen(grupo, 'piel', [0.15, 0.13, 0.21], [lado * 0.28, 1.17, -0.45], redondo);
-    }
+    // Proporciones adultas: cabeza pequeña sobre un torso con hombros y cuello.
+    volumen(grupo, ropa, [0.5, 0.7, 0.28], [0, 1.15, 0], redondo);
+    volumen(grupo, ropa, [0.58, 0.14, 0.3], [0, 1.45, 0], redondo);
+    volumen(grupo, 'piel', [0.11, 0.1, 0.11], [0, 1.56, -0.02], deposito);
+    volumen(grupo, 'piel', [0.27, 0.33, 0.28], [0, 1.74, -0.03], copaSuave);
+    volumen(grupo, 'madera', [0.29, 0.15, 0.29], [0, 1.86, 0.01], copaSuave);
+    if (moño) volumen(grupo, 'negro', [0.19, 0.19, 0.16], [0, 1.79, 0.15], copaSuave);
+    const brazos = [-1, 1].map((lado) => {
+      volumen(grupo, 'negro', [0.2, 0.18, 0.55], [lado * 0.13, 0.74, -0.18], redondo);
+      volumen(grupo, 'negro', [0.18, 0.55, 0.2], [lado * 0.13, 0.48, -0.42], redondo);
+      const brazo = volumen(grupo, ropa, [0.13, 0.15, 0.46], [lado * 0.3, 1.18, -0.22], redondo);
+      const mano = volumen(grupo, 'piel', [0.1, 0.09, 0.15], [lado * 0.3, 1.2, -0.47], redondo);
+      return { brazo, mano };
+    });
+    return { grupo, brazos };
   }
 
 
@@ -217,8 +269,8 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
     caja('acero', [0.08, 1.36, 0.11], [x, 2.39, 4.18], fachada);
   }
   texto(fachada, 'Tisnova', [5.1, 1.22], [0, 3.89, 4.36], '#f5faec');
-  const tejadoOficina = caja('salvia', [12.5, 0.42, 8.7], [0, 4.95, 0], cubierta);
-  const acabadoCubierta = material('salvia').clone();
+  const tejadoOficina = caja('cubierta', [12.5, 0.42, 8.7], [0, 4.95, 0], cubierta);
+  const acabadoCubierta = material('cubierta').clone();
   acabadoCubierta.transparent = true;
   tejadoOficina.material = acabadoCubierta;
 
@@ -290,7 +342,8 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
   caja('cal', [7.0, 0.07, 8.2], [gate, 4.94, 17.35]);
   texto(suelo, 'TisTransit', [5.9, 1.12], [gate, 4.65, 21.76], '#f5faec');
   caja('cal', [3.1, 2.54, 2.56], [gate + 1.9, 1.29, 23.6]);
-  caja('salvia', [3.32, 0.18, 2.76], [gate + 1.9, 2.66, 23.6]);
+  caja('cubierta', [3.32, 0.18, 2.76], [gate + 1.9, 2.66, 23.6]);
+  caja('verde', [3.34, 0.05, 2.78], [gate + 1.9, 2.55, 23.6]);
   caja('cristal', [2.48, 0.92, 0.08], [gate + 1.9, 1.82, 24.90]);
   caja('metal', [0.27, 2.62, 0.34], [gate - 1.8, 1.38, 21.14]);
   caja('verde', [0.94, 1.17, 0.26], [gate - 1.8, 2.22, 21.14]);
@@ -358,7 +411,47 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
     volumen(puesto, 'negro', [2.14, 1.39, 0.16], [0, 2.12, -0.88], redondo);
     caja('acero', [0.93, 0.05, 0.32], [0, 1.33, -0.25], puesto);
     caja('cal', [0.49, 0.04, 0.32], [-1.24, 1.33, -0.55], puesto);
-    persona(puesto, 0, 0.86, 0, 'bosque');
+    const empleado = persona(puesto, 0, 0.86, 0, 'bosque');
+    escena.add(empleado.grupo);
+    empleado.grupo.position.add(puesto.position);
+    const { brazo, mano } = empleado.brazos[1];
+    const telefono = new T.Group();
+    empleado.grupo.add(telefono);
+    volumen(telefono, 'negro', [0.30, 0.55, 0.046], [0, 0, 0], redondo);
+    const pantallaTime = crearPantallaTime(anisotropia);
+    const frontal = new T.Mesh(
+      new T.PlaneGeometry(0.268, 0.268 * 680 / 360),
+      new T.MeshBasicMaterial({ map: pantallaTime.textura, toneMapped: false }),
+    );
+    frontal.position.z = 0.024;
+    telefono.add(frontal);
+    caja('negro', [0.056, 0.011, 0.005], [0, 0.228, 0.026], telefono);
+    const direccionBrazo = new T.Vector3();
+    const ejeBrazo = new T.Vector3(0, 0, -1);
+    const codo = new T.Vector3(0.3, 1.18, 0.01);
+    const reposo = new T.Vector3(0.3, 1.2, -0.47);
+    const manoEnMesa = new T.Vector3(0.55, 1.12, -0.81);
+    const levantada = new T.Vector3(0.60, 1.44, -0.39);
+    const telefonoEnMesa = new T.Vector3(0.67, 1.075, -0.99);
+    const time = {
+      telefono,
+      redibujar: pantallaTime.redibujar,
+      actualizar(avance: number) {
+        const coger = T.MathUtils.smoothstep(avance, 0.02, 0.27);
+        const levantar = T.MathUtils.smoothstep(avance, 0.27, 0.76);
+        telefono.position.copy(telefonoEnMesa).lerp(
+          direccionBrazo.set(0.67, 1.57, -0.28), levantar,
+        );
+        telefono.rotation.set(T.MathUtils.lerp(-Math.PI / 2, -0.06, levantar), 1.13 * levantar, -0.04 * levantar);
+        mano.position.copy(reposo).lerp(manoEnMesa, coger).lerp(levantada, levantar);
+        brazo.position.copy(codo).lerp(mano.position, 0.5);
+        direccionBrazo.subVectors(mano.position, codo);
+        brazo.scale.z = direccionBrazo.length() / 0.46;
+        brazo.quaternion.setFromUnitVectors(ejeBrazo, direccionBrazo.normalize());
+        pantallaTime.actualizar(avance);
+      },
+    };
+    time.actualizar(0);
 
     const pantalla = crearPantallaTms();
     const monitor = new T.Vector3(10.1, 2.36, 1.51);
@@ -368,13 +461,106 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
     );
     superficie.position.copy(monitor);
     escena.add(superficie);
-    return { pantalla, monitor };
+    return { pantalla, monitor, time };
+  })() : null;
+
+  const puestoRural = terminal ? (() => {
+    const [x, z] = aplicacionesMapa.find(({ id }) => id === 'tisrural')!.posicion;
+    const caseta = new T.Group();
+    caseta.position.set(x, 0.2, z);
+    suelo.add(caseta);
+
+    volumen(caseta, 'junta', [7.6, 0.2, 7.3], [0, -0.06, 0], redondo);
+    for (let tabla = 0; tabla < 15; tabla++) {
+      const tono = tabla % 4 === 0 ? 'cedroClaro' : 'cedro';
+      caja(tono, [0.414, 0.12, 5.75], [(tabla - 7) * 0.42, 0.1, 0], caseta);
+    }
+    caja('madera', [6.35, 3.51, 0.12], [0, 1.91, 2.78], caseta);
+    caja('madera', [0.12, 3.51, 5.55], [-3.09, 1.91, 0], caseta);
+    for (let fila = 0; fila < 11; fila++) {
+      const y = 0.31 + fila * 0.32;
+      const tono = fila % 3 === 0 ? 'cedroClaro' : 'cedro';
+      caja(tono, [6.35, 0.31, 0.19], [0, y, 2.76], caseta);
+      caja(tono, [0.19, 0.31, 5.55], [-3.07, y, 0], caseta);
+    }
+    for (const x of [-3.07, 3.07]) {
+      for (const z of [-2.76, 2.76]) caja('madera', [0.22, 3.55, 0.22], [x, 1.86, z], caseta);
+    }
+    for (const x of [-2.6, 2.6]) {
+      caja('madera', [0.92, 0.11, 0.29], [x, 2.43, 2.59], caseta);
+      for (const dx of [-0.27, 0, 0.27]) {
+        volumen(caseta, 'laton', [0.12, 0.12, 0.08], [x + dx, 2.37, 2.42], copaSuave);
+        caja('laton', [0.055, 0.19, 0.04], [x + dx, 2.26, 2.42], caseta);
+      }
+    }
+
+    const tejado = new T.Group();
+    tejado.position.copy(caseta.position);
+    escena.add(tejado);
+    for (const lado of [-1, 1]) {
+      const faldon = new T.Group();
+      faldon.position.set(lado * 1.68, 4.03, 0);
+      faldon.rotation.z = -lado * 0.29;
+      tejado.add(faldon);
+      volumen(faldon, 'bosque', [3.57, 0.21, 6.24], [0, 0, 0], redondo);
+      for (let junta = -5; junta <= 5; junta++) {
+        caja('verde', [3.55, 0.04, 0.034], [0, 0.11, junta * 0.53], faldon);
+      }
+    }
+    caja('madera', [6.36, 0.39, 0.23], [0, 3.54, 2.76], caseta);
+    texto(caseta, 'TisRural', [2.6, 0.58], [0, 3.29, 2.65], '#fff4d9').rotation.y = Math.PI;
+
+    volumen(caseta, 'madera', [3.58, 0.15, 1.28], [0, 1.25, 0.08], redondo);
+    for (const lado of [-1, 1]) caja('cedro', [0.18, 1.04, 1.16], [lado * 1.65, 0.69, 0.08], caseta);
+    caja('negro', [0.62, 0.06, 0.39], [0.38, 1.35, 0.26], caseta);
+    caja('negro', [0.13, 0.43, 0.12], [0.38, 1.53, 0.26], caseta);
+    volumen(caseta, 'negro', [2.18, 1.3, 0.13], [0.38, 2.1, 0.26], redondo);
+    caja('acero', [0.62, 0.033, 0.23], [0.38, 1.35, -0.16], caseta);
+    caja('cal', [0.32, 0.025, 0.27], [-1.26, 1.35, -0.12], caseta);
+    persona(caseta, 0.94, -1.13, Math.PI + 0.36, 'terracota', true);
+
+    const huesped = new T.Group();
+    huesped.position.set(-1.96, 0.16, 0.91);
+    huesped.rotation.y = -0.66;
+    caseta.add(huesped);
+    for (const lado of [-1, 1]) {
+      volumen(huesped, 'negro', [0.21, 0.91, 0.22], [lado * 0.14, 0.53, 0], redondo);
+      volumen(huesped, 'madera', [0.23, 0.13, 0.35], [lado * 0.14, 0.07, -0.07], redondo);
+      volumen(huesped, 'bosque', [0.16, 0.54, 0.2], [lado * 0.32, 1.23, -0.04], redondo).rotation.x = 0.22;
+      volumen(huesped, 'piel', [0.12, 0.13, 0.13], [lado * 0.32, 0.94, -0.11], copaSuave);
+    }
+    volumen(huesped, 'bosque', [0.56, 0.67, 0.32], [0, 1.28, 0], redondo);
+    volumen(huesped, 'piel', [0.12, 0.12, 0.12], [0, 1.62, 0], deposito);
+    volumen(huesped, 'piel', [0.28, 0.33, 0.28], [0, 1.8, -0.02], copaSuave);
+    volumen(huesped, 'madera', [0.29, 0.16, 0.29], [0, 1.91, 0.02], copaSuave);
+    volumen(caseta, 'terracota', [0.4, 0.55, 0.31], [-2.46, 0.43, 1.36], redondo);
+    caja('madera', [0.14, 0.19, 0.05], [-2.46, 0.76, 1.34], caseta);
+
+    const pantalla = crearPantallaRural(anisotropia);
+    const monitor = new T.Vector3(x + 0.38, 2.3, z + 0.19);
+    const superficie = new T.Mesh(
+      new T.PlaneGeometry(2.06, 2.06 * 600 / 1040),
+      new T.MeshBasicMaterial({ map: pantalla.textura, toneMapped: false }),
+    );
+    superficie.rotation.y = Math.PI;
+    superficie.position.copy(monitor);
+    escena.add(superficie);
+
+    return {
+      pantalla, monitor,
+      abrir(progreso: number) {
+        tejado.position.y = caseta.position.y + progreso * 4;
+        tejado.visible = progreso < 0.88;
+      },
+    };
   })() : null;
 
   const estanterias = tipo === 'terminal' ? aplicacionesMapa.map(({ id, posicion: [x, z] }) => {
-    const base = caja('lima', [3.4, 0.026, 4.15], [x, 0.253, z], escena);
+    const base = id === 'tisrural'
+      ? volumen(escena, 'lima', [7.83, 0.14, 7.53], [x, 0.17, z], redondo)
+      : caja('lima', [3.4, 0.026, 4.15], [x, 0.253, z], escena);
     base.visible = false;
-    return { base, anclaje: new T.Vector3(x, id === 'tistms' ? 3.4 : 5.4, z) };
+    return { base, anclaje: new T.Vector3(x, id === 'tistms' || id === 'tistime' ? 3.4 : 5.4, z) };
   }) : [];
   for (const x of [20.35, 25.65]) caja('carretera', [0.10, 0.015, 20.2], [x, 0.247, -7.0]);
   for (const x of [9.1, 12.2, 31.5, 35.9]) palet(x, 0.23, 0.65, true);
@@ -449,11 +635,13 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
   escena.add(trazado);
 
   return {
-    techo, frente, tractor, carretilla, horquillas, entrada, salida, ruta, cerrarOficina, estanterias, marcasAlmacen, cargaRuta, plano, puestoTms,
+    techo, frente, tractor, carretilla, horquillas, entrada, salida, ruta, cerrarOficina, estanterias, marcasAlmacen, cargaRuta, plano, puestoTms, puestoRural,
     actualizarTipografia() {
       rotulos.forEach((dibujar) => dibujar());
       plano?.actualizarTipografia();
       puestoTms?.pantalla.redibujar();
+      puestoTms?.time.redibujar();
+      puestoRural?.pantalla.redibujar();
     },
     trazar(progreso: number) {
       trazado.geometry.setDrawRange(0, Math.floor(progreso * segmentos) * carasPorSegmento);

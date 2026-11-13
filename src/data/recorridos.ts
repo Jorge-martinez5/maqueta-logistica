@@ -1,6 +1,37 @@
 import { productos } from './negocio';
 
 export const recorridos = {
+  time: {
+    producto: productos.find(({ id }) => id === 'tistime')!,
+    tipo: 'time',
+    inicio: 'movil-tistime',
+    sector: 'Gestión de equipos',
+    etiqueta: 'Recorrido por el fichaje con TisTime',
+    encabezado: ['El fichaje,', 'desde el móvil.'],
+    introduccion: 'Al terminar el turno, el empleado coge el móvil y abre TisTime.',
+    accion: 'Ver mi jornada',
+    imagenes: 'time',
+    paradas: [
+      { id: 'jornada', nombre: 'Jornada', titulo: 'Registrar la salida.', texto: 'En Mi jornada, el empleado consulta la hora de entrada y registra la salida.' },
+      { id: 'salida', nombre: 'Salida', titulo: 'Fichaje realizado.', texto: 'TisTime confirma que la salida se ha registrado y que la jornada ha finalizado.' },
+    ],
+  },
+  rural: {
+    producto: productos.find(({ id }) => id === 'tisrural')!,
+    tipo: 'rural',
+    inicio: 'recepcion-tisrural',
+    sector: 'Alojamientos rurales',
+    etiqueta: 'Recorrido por la recepción con TisRural',
+    encabezado: ['Bienvenidos a', 'la recepción.'],
+    introduccion: 'Un huésped llega a la recepción. Acompañad a la recepcionista mientras consulta y confirma su estancia.',
+    accion: 'Ver el calendario',
+    imagenes: 'rural',
+    paradas: [
+      { id: 'calendario', nombre: 'Calendario', titulo: '¿Hay sitio en Pino?', texto: 'En el calendario se ven de un vistazo las fechas libres de Olivo, Pino y Encina.' },
+      { id: 'estancia', nombre: 'Estancia', titulo: 'Tres noches en Pino.', texto: 'La recepcionista selecciona Pino del 18 al 21 de noviembre.' },
+      { id: 'confirmacion', nombre: 'Confirmación', titulo: 'La reserva queda confirmada.', texto: 'El calendario muestra la estancia confirmada y sus fechas.' },
+    ],
+  },
   game: {
     producto: productos.find(({ id }) => id === 'tisgame')!,
     tipo: 'game',

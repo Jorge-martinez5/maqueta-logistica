@@ -93,6 +93,9 @@ export function prepararTransit(tractor: T.Group, integrado = false) {
     const grupo = new T.Group();
     grupo.position.set(0, y, 0);
     grupo.rotation.y = giro;
+    // Cabeza a escala adulta: más pequeña y algo más baja sobre los hombros.
+    grupo.scale.setScalar(0.8);
+    grupo.position.y -= 0.04;
     parent.add(grupo);
     pieza(grupo, piel, [0.35, 0.42, 0.35], [0, 0, 0], esfera);
     pieza(grupo, pelo, [0.35, 0.23, 0.35], [0, 0.095, 0.025], esfera);

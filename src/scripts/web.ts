@@ -37,7 +37,7 @@ let escenas = todasLasEscenas.filter((escena) => !escena.closest('[hidden]'));
 let visitaActiva: TipoVisita | undefined;
 
 function tipoVisita(valor?: string): TipoVisita | undefined {
-  return valor === 'interior' || valor === 'transit' || valor === 'tms' || valor === 'game' ? valor : undefined;
+  return valor === 'interior' || valor === 'transit' || valor === 'tms' || valor === 'game' || valor === 'rural' || valor === 'time' ? valor : undefined;
 }
 
 function visitaDe(escena: HTMLElement | null) {

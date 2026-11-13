@@ -2,9 +2,11 @@ import * as T from 'three';
 import { construirMundo, type TipoMaqueta } from './mundo';
 import { prepararInterior } from './interior';
 import { prepararTransit } from './transit';
-import { prepararTms } from './tms';
+import { prepararVisitaMonitor } from './tms';
+import { prepararTime } from './time';
 import { crearPistaGame, prepararGame } from './game';
 import type { TipoVisita } from '../../data/recorridos';
+import type { Oclusion } from './oclusion';
 
 const encuadres = [
   { momento: 0, centro: [-30.3, 3.13, -8.49], vista: [0.42, 2.05, 6], alto: 4.35, viaje: 0 },
@@ -66,7 +68,10 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
     : tipo === 'transit' ? prepararTransit(mundo.tractor) : null;
   const visitaInterior = tipo === 'terminal' ? prepararInterior(mundo, true) : null;
   const visitaTransit = tipo === 'terminal' ? prepararTransit(mundo.tractor, true) : null;
-  const visitaTms = mundo.puestoTms ? prepararTms(mundo.puestoTms.pantalla, mundo.puestoTms.monitor) : null;
+  const visitaTms = mundo.puestoTms ? prepararVisitaMonitor(mundo.puestoTms.pantalla, mundo.puestoTms.monitor) : null;
+  const visitaTime = mundo.puestoTms ? prepararTime(mundo.puestoTms.time) : null;
+  const visitaRural = mundo.puestoRural
+    ? prepararVisitaMonitor(mundo.puestoRural.pantalla, mundo.puestoRural.monitor, true) : null;
   const pistaGame = tipo === 'terminal' ? crearPistaGame() : null;
   if (pistaGame) {
     pistaGame.textura.anisotropy = anisotropia;
@@ -79,6 +84,8 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
   const enlacesMapa = mapa?.querySelector<HTMLElement>('.mapa-enlaces');
   const capaMapa = maqueta?.querySelector<HTMLElement>('[data-anclajes]');
   const marcadores = Array.from(mapa?.querySelectorAll<HTMLElement>('[data-punto-aplicacion]') ?? []);
+  const marcadorTms = marcadores.find((marcador) => marcador.dataset.puntoAplicacion === 'tistms');
+  const marcadorTime = marcadores.find((marcador) => marcador.dataset.puntoAplicacion === 'tistime');
   const eventosMarcador = ['pointerenter', 'pointerleave', 'focus', 'blur'] as const;
   const centro = new T.Vector3();
   const posicion = new T.Vector3();
@@ -101,6 +108,34 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
   let visible = true;
   let destruida = false;
   let sombrasMapa = false;
+  // Oclusión ambiental solo en escritorio; se retira sola si el equipo no mantiene ~50 fps.
+  let oclusion: Oclusion | null = null;
+  // Retraso entre pedir un cuadro y empezar a pintarlo: sube cuando la GPU va saturada,
+  // y no incluye el tiempo de espera a que el usuario haga scroll.
+  let momentoPedido = 0;
+  const tiemposCuadro: number[] = [];
+  if (!pantallaEstrecha && !recorrido) {
+    import('./oclusion').then(({ crearOclusion }) => {
+      if (destruida) return;
+      oclusion = crearOclusion(renderer, escena, camera);
+      oclusion.ajustar(ancho, alto);
+      solicitar();
+    }).catch(() => {});
+  }
+
+  function medirCuadro() {
+    if (!oclusion) return;
+    const intervalo = performance.now() - momentoPedido;
+    if (intervalo > 250) return;
+    tiemposCuadro.push(intervalo);
+    if (tiemposCuadro.length < 40) return;
+    const mediana = [...tiemposCuadro].sort((a, b) => a - b)[20];
+    tiemposCuadro.length = 0;
+    if (mediana > 18) {
+      oclusion.liberar();
+      oclusion = null;
+    }
+  }
 
   function proyectarMarcadores() {
     const margen = ancho <= 720 ? 49 : 65;
@@ -113,6 +148,13 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
       marcador.style.setProperty('--anclaje-x', `${x}px`);
       marcador.style.setProperty('--anclaje-y', `${y}px`);
     });
+    if (marcadorTms && marcadorTime) {
+      const x = parseFloat(marcadorTms.style.getPropertyValue('--anclaje-x'));
+      const y = parseFloat(marcadorTms.style.getPropertyValue('--anclaje-y'));
+      const distancia = ancho <= 720 ? 94 : 110;
+      marcadorTime.style.setProperty('--anclaje-x', `${Math.min(ancho - margen, x + distancia)}px`);
+      marcadorTime.style.setProperty('--anclaje-y', `${x + distancia > ancho - margen ? y - 50 : y}px`);
+    }
   }
 
   function moverRaton(evento: PointerEvent) {
@@ -212,7 +254,7 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
     frente.visible = abrir < 0.98;
     const entradaVisita = suavizar(0, 1, avanceVisita);
     const tramoVisita = Math.max(0, avanceVisita - 1);
-    if (visitaTms) maqueta?.style.setProperty('--visibilidad-monitor', String(visita === 'tms' || visita === 'game' ? suavizar(0.35, 1, tramoVisita) : 0));
+    if (visitaTms) maqueta?.style.setProperty('--visibilidad-monitor', String(visita === 'tms' || visita === 'game' || visita === 'rural' || visita === 'time' ? suavizar(0.35, 1, tramoVisita) : 0));
     const entrandoEnNave = visita === 'interior' ? entradaVisita : 0;
     visitaInterior?.actualizar(visita === 'interior' ? tramoVisita : 0, ancho, alto);
     carretilla.position.z = T.MathUtils.lerp(
@@ -227,11 +269,18 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
     }
 
     visitaTms?.actualizar(visita === 'tms' ? tramoVisita : 0, ancho, alto);
+    mundo.puestoRural?.abrir(visita === 'rural' ? suavizar(0.2, 0.78, entradaVisita) : 0);
+    visitaRural?.actualizar(visita === 'rural' ? tramoVisita : 0, ancho, alto);
+    visitaTime?.actualizar(visita === 'time' ? tramoVisita : 0, ancho, alto);
     visitaGame?.actualizar(visita === 'game' ? tramoVisita : 0, ancho, alto);
-    const recorridoActivo = visita === 'interior' ? visitaInterior : visita === 'transit' ? visitaTransit : visita === 'tms' ? visitaTms : visita === 'game' ? visitaGame : null;
+    const recorridoActivo = visita === 'interior' ? visitaInterior : visita === 'transit' ? visitaTransit : visita === 'tms' ? visitaTms : visita === 'game' ? visitaGame : visita === 'rural' ? visitaRural : visita === 'time' ? visitaTime : null;
     if (entradaVisita > 0 && recorridoActivo?.camara instanceof T.OrthographicCamera) {
       const destino = recorridoActivo.camara;
       camera.position.lerp(destino.position, entradaVisita);
+      if (visita === 'rural') {
+        // Al rodear la nave, la cámara pasa por encima del muro trasero.
+        camera.position.y += 16 * Math.sin(Math.PI * entradaVisita);
+      }
       centro.lerp(recorridoActivo.foco, entradaVisita);
       vertical *= (destino.top * 2 / vertical) ** entradaVisita;
       margenX = T.MathUtils.lerp(margenX, destino.view?.offsetX ?? 0, entradaVisita);
@@ -269,11 +318,15 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
     sol.shadow.autoUpdate = !escenaEstatica;
     if (escenaEstatica && !sombrasMapa) sol.shadow.needsUpdate = true;
     sombrasMapa = escenaEstatica;
-    renderer.render(escena, camera);
+    medirCuadro();
+    if (oclusion) oclusion.dibujar(camera);
+    else renderer.render(escena, camera);
   }
 
   function solicitar() {
-    if (!frame && visible && !destruida) frame = requestAnimationFrame(pintar);
+    if (frame || !visible || destruida) return;
+    momentoPedido = performance.now();
+    frame = requestAnimationFrame(pintar);
   }
 
   function ajustar() {
@@ -281,6 +334,7 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
     alto = Math.max(1, canvas.clientHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, ancho < 760 ? 1.25 : 1.55));
     renderer.setSize(ancho, alto, false);
+    oclusion?.ajustar(ancho, alto);
     solicitar();
   }
 
@@ -321,6 +375,8 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
     if (destruida) return;
     destruida = true;
     cancelAnimationFrame(frame);
+    oclusion?.liberar();
+    oclusion = null;
     tamaño.disconnect();
     visibilidad.disconnect();
     canvas.removeEventListener('webglcontextlost', contextoPerdido);

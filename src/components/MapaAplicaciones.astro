@@ -18,8 +18,8 @@ import { productos } from '../data/negocio';
         <li>
           <a
             class="mapa-punto"
-            data-punto-aplicacion
-            data-visita-destino={id === 'tissga' ? 'interior' : id === 'tistransit' ? 'transit' : id === 'tistms' ? 'tms' : id === 'tisgame' ? 'game' : undefined}
+            data-punto-aplicacion={id}
+            data-visita-destino={id === 'tissga' ? 'interior' : id === 'tistransit' ? 'transit' : id === 'tistms' ? 'tms' : id === 'tisgame' ? 'game' : id === 'tisrural' ? 'rural' : id === 'tistime' ? 'time' : undefined}
             data-fila={id === 'tisrural' || id === 'tisgame' ? 'superior' : undefined}
             href={recorrido ?? producto.url}
             aria-label={`${producto.nombre} · ${producto.sector}`}
