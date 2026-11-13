@@ -77,7 +77,8 @@ a:hover > span, a:hover h3 span { transform: translate(2px,-2px); }
 .maqueta-producto { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; color: var(--color-accent); font-size: .84rem; }
 .maqueta-producto strong { color: var(--color-ink); font-weight: 730; }
 .maqueta-producto span { border-left: 1px solid #a8bda6; padding-left: 8px; }
-.maqueta-hud { position: sticky; top: calc(100svh - var(--hud-abajo) - var(--hud-alto)); z-index: 4; display: grid; align-items: end; width: max-content; height: var(--hud-alto); margin-inline: auto var(--gutter); margin-bottom: calc(-1 * var(--hud-alto)); }
+/* Se ancla al borde inferior y se sube con translate: así, al acabar la maqueta, se queda dentro de ella en lugar de invadir el catálogo. */
+.maqueta-hud { position: sticky; top: 100svh; translate: 0 calc(-1 * (var(--hud-alto) + var(--hud-abajo))); z-index: 4; display: grid; align-items: end; width: max-content; height: var(--hud-alto); margin-inline: auto var(--gutter); margin-bottom: calc(-1 * var(--hud-alto)); }
 .maqueta-paradas { display: flex; gap: 2px; padding: 4px; border: 1px solid #b8c9b6; border-radius: 100px; background: #f6f9f1ed; box-shadow: 0 7px 25px #263b2a13; }
 .maqueta-paradas[hidden] { display: none; }
 .maqueta-paradas a { display: inline-flex; align-items: center; gap: 7px; padding: 9px 12px; border-radius: 100px; color: #31523a; font-size: .78rem; font-weight: 650; }

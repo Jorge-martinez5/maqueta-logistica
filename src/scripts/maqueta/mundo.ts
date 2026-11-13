@@ -5,6 +5,7 @@ import { crearPlano } from './plano';
 import { crearPantallaTms } from './tms';
 import { crearPantallaRural } from './rural';
 import { crearPantallaTime } from './time';
+import { crearTexturaSuperficie } from './materiales';
 
 const colores = {
   cal: 0xf8f8ed, blanco: 0xfffff6, hormigon: 0xd6dbcc, junta: 0xb9c5b1,
@@ -39,18 +40,27 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
   const copaSuave = new T.IcosahedronGeometry(0.5, 2);
   const suelo = new T.Group();
   const materiales = new Map<Tono, T.MeshStandardMaterial>();
+  const pavimento = crearTexturaSuperficie('pavimento', anisotropia);
+  const vetaMadera = crearTexturaSuperficie('madera', anisotropia);
+  // Metros que ocupa una repetición de cada textura.
+  const tramoTextura: Partial<Record<Tono, number>> = { hormigon: 6, asfalto: 6, arena: 6, madera: 0.6 };
+  const geometriasEnMetros = new Map<string, T.BufferGeometry>();
   const rotulos: (() => void)[] = [];
 
   function material(tono: Tono) {
     if (!materiales.has(tono)) {
-      materiales.set(tono, new T.MeshStandardMaterial({
+      materiales.set(tono, new T.MeshPhysicalMaterial({
         color: colores[tono],
-        roughness: tono === 'cristal' ? 0.43 : 0.82,
-        metalness: tono === 'metal' || tono === 'acero' ? 0.12 : 0,
+        roughness: tono === 'cristal' ? 0.12 : 0.72,
+        metalness: tono === 'metal' || tono === 'acero' ? 0.72 : 0,
+        ...(tono === 'verde' ? { roughness: 0.3, metalness: 0.25, clearcoat: 0.8, clearcoatRoughness: 0.2 } : {}),
+        ...(tono === 'cristal' ? { metalness: 0.45, clearcoat: 1 } : {}),
+        ...(['hormigon', 'asfalto', 'arena'].includes(tono) ? { bumpMap: pavimento, bumpScale: 0.035, roughnessMap: pavimento } : {}),
+        ...(tono === 'madera' ? { bumpMap: vetaMadera, bumpScale: 0.018, roughness: 0.7 } : {}),
         ...(tono === 'semaforo' ? { emissive: 0x90bf50, emissiveIntensity: 0.66 } : {}),
         ...(tono === 'faro' ? { emissive: 0xfff0c0, emissiveIntensity: 0.9 } : {}),
         ...(tono === 'piloto' ? { emissive: 0xb03a2a, emissiveIntensity: 0.5 } : {}),
-        ...(tono === 'llanta' ? { roughness: 0.45, metalness: 0.35 } : {}),
+        ...(tono === 'llanta' ? { roughness: 0.25, metalness: 0.85 } : {}),
       }));
     }
     return materiales.get(tono)!;
@@ -66,9 +76,37 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
     return biseles.get(clave)!;
   }
 
+  // Proyecta las UV desde la posición de cada vértice, en metros reales y según la cara a la que mira.
+  function uvEnMetros(geometria: T.BufferGeometry, escala: Posicion, tramo: number) {
+    const clave = `${geometria.uuid}:${escala.map((medida) => medida.toFixed(3)).join('x')}:${tramo}`;
+    if (!geometriasEnMetros.has(clave)) {
+      const copia = geometria.clone();
+      const posiciones = copia.getAttribute('position');
+      const normales = copia.getAttribute('normal');
+      const uv = new Float32Array(posiciones.count * 2);
+      for (let i = 0; i < posiciones.count; i++) {
+        const x = posiciones.getX(i) * escala[0];
+        const y = posiciones.getY(i) * escala[1];
+        const z = posiciones.getZ(i) * escala[2];
+        const nx = Math.abs(normales.getX(i));
+        const ny = Math.abs(normales.getY(i));
+        const nz = Math.abs(normales.getZ(i));
+        const [u, v] = nx >= ny && nx >= nz ? [z, y] : ny >= nz ? [x, z] : [x, y];
+        uv[i * 2] = u / tramo;
+        uv[i * 2 + 1] = v / tramo;
+      }
+      copia.setAttribute('uv', new T.BufferAttribute(uv, 2));
+      geometriasEnMetros.set(clave, copia);
+    }
+    return geometriasEnMetros.get(clave)!;
+  }
+
   function volumen(parent: T.Object3D, tono: Tono, tamaño: Posicion, posicion: Posicion, geometria: T.BufferGeometry = cubo) {
     const bisel = geometria === redondo;
-    const objeto = new T.Mesh(bisel ? biselada(tamaño) : geometria, material(tono));
+    const base = bisel ? biselada(tamaño) : geometria;
+    const tramo = tramoTextura[tono];
+    const forma = tramo ? uvEnMetros(base, bisel ? [1, 1, 1] : tamaño, tramo) : base;
+    const objeto = new T.Mesh(forma, material(tono));
     objeto.position.set(...posicion);
     if (!bisel) objeto.scale.set(...tamaño);
     objeto.castShadow = tamaño[1] > 0.07;
@@ -126,6 +164,19 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
     caja('salvia', [6.0, 0.2, 2.3], [-1.07, 0.99, 0], parent);
     for (const x of [-4.1, 1.98]) for (const z of [-1.12, 1.12]) caja('acero', [0.08, 2.3, 0.08], [x, 2.0, z], parent);
     caja('acero', [6.12, 0.06, 2.3], [-1.06, 3.17, 0], parent);
+    for (const z of [-1.145, 1.145]) {
+      for (let x = -3.9; x < 1.9; x += 0.38) {
+        caja('junta', [0.012, 2.09, 0.012], [x, 2.02, z], parent);
+      }
+      for (const x of [-3.7, -2.0, -0.3, 1.5]) {
+        caja('faro', [0.1, 0.055, 0.025], [x, 0.97, z], parent);
+      }
+      caja('verde', [5.9, 0.08, 0.025], [-1.06, 1.13, z], parent);
+    }
+    for (const z of [-0.5, 0.5]) {
+      caja('acero', [0.045, 2.13, 0.04], [-4.15, 1.99, z], parent);
+      caja('metal', [0.07, 0.08, 0.22], [-4.2, 1.5, z], parent);
+    }
     for (const z of [-0.75, 0.75]) caja('piloto', [0.06, 0.16, 0.34], [-4.17, 0.98, z], parent);
     caja('metal', [0.12, 0.17, 1.99], [-4.17, 0.74, 0], parent);
     // Cabina con deflector, rejilla, faros y retrovisores.
@@ -145,6 +196,9 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
     volumen(parent, tono, [1.15, 0.5, 2.0], [2.62, 3.12, 0], redondo).rotation.z = 0.32;
     volumen(parent, 'negro', [0.3, 0.36, 2.2], [4.06, 0.66, 0], redondo);
     caja('cristal', [0.08, 0.74, 1.82], [4.11, 2.27, 0], parent);
+    for (const z of [-0.46, 0.46]) {
+      caja('negro', [0.025, 0.035, 0.62], [4.16, 1.96, z], parent).rotation.x = 0.16;
+    }
     caja(tono, [0.1, 0.07, 1.9], [4.13, 2.68, 0], parent);
     caja('negro', [0.06, 0.56, 1.3], [4.15, 1.22, 0], parent);
     for (const y of [1.0, 1.14, 1.28, 1.42]) caja('acero', [0.05, 0.05, 1.24], [4.18, y, 0], parent);
@@ -161,6 +215,12 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
       texto(parent, 'Tisnova', [3.85, 0.96], [-1.05, 2.17, lado * 1.15]).rotation.y = lado > 0 ? 0 : Math.PI;
       for (const x of [-3.3, -2.44, 1.68, 3.51]) {
         volumen(parent, 'neum', [0.9, 0.32, 0.9], [x, 0.45, lado * 0.97], neumatico).rotation.x = Math.PI / 2;
+        volumen(parent, 'llanta', [0.59, 0.045, 0.59], [x, 0.45, lado * 1.145], rueda).rotation.x = Math.PI / 2;
+        for (let perno = 0; perno < 8; perno++) {
+          const angulo = perno * Math.PI / 4;
+          volumen(parent, 'negro', [0.075, 0.018, 0.075],
+            [x + Math.sin(angulo) * 0.21, 0.45 + Math.cos(angulo) * 0.21, lado * 1.175], rueda).rotation.x = Math.PI / 2;
+        }
         volumen(parent, 'llanta', [0.74, 0.74, 0.5], [x, 0.45, lado * 1.13], aro).castShadow = false;
         volumen(parent, 'metal', [0.22, 0.06, 0.22], [x, 0.45, lado * 1.14], rueda).rotation.x = Math.PI / 2;
         volumen(parent, x > 0 ? tono : 'negro', [1.08, 0.36, 1.08], [x, 0.47, lado * 0.97], guardabarros).rotation.x = Math.PI / 2;
@@ -367,6 +427,10 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
   caja('cal', [33.6, 7.6, 0.42], [nave, 3.96, 4.81], frente);
   caja('verde', [33.8, 1.07, 0.54], [nave, 6.55, 4.87], frente);
   texto(frente, 'TisSGA', [6.8, 1.2], [31.1, 6.55, 5.16], '#f4f8ec');
+  for (let x = 7.2; x < 39; x += 2.05) {
+    caja('junta', [0.075, 7.3, 0.07], [x, 3.95, -18.97]);
+  }
+  for (const y of [2.65, 5.2]) caja('hormigon', [33, 0.08, 0.08], [23, y, -18.95]);
   for (let x = 10.3; x < 38; x += 5.1) {
     caja('metal', [3.62, 3.59, 0.11], [x, 2.13, 5.06], frente);
     caja('cristal', [2.98, 2.98, 0.10], [x, 2.11, 5.15], frente);

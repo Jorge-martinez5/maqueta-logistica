@@ -1,0 +1,35 @@
+<section class="portada" id="portada" aria-labelledby="portada-titulo">
+  <picture class="portada-imagen">
+    <source media="(max-width: 720px)" srcset="/visual/logistica-small.webp" />
+    <img src="/visual/logistica.webp" width="1672" height="941" alt="Camión de Tisnova frente a los muelles de un almacén al atardecer" fetchpriority="high" />
+  </picture>
+  <div class="portada-sombra"></div>
+  <div class="portada-contenido">
+    <h1 id="portada-titulo" data-enter>Todo empieza<br />por <em>conectar.</em></h1>
+    <p data-enter>Software, sistemas y personas.<br />La tecnología que mueve vuestra empresa.</p>
+    <a href="#terminal" class="portada-boton" data-enter>Explorar nuestro software <span aria-hidden="true">↗</span></a>
+  </div>
+  <div class="portada-pie"><span>Consultoría tecnológica · Software propio</span><a href="#inicio">Conoced Tisnova <span aria-hidden="true">↓</span></a></div>
+</section>
+<style>
+.portada { position: relative; min-height: calc(100svh - var(--sticky-top)); display: flex; align-items: flex-start; overflow: hidden; background: #26362e; color: #fff9ea; }
+.portada-imagen,.portada-sombra { position: absolute; inset: 0; }
+.portada-imagen img { width: 100%; height: 100%; object-fit: cover; object-position: 62% 50%; }
+.portada-sombra { background: linear-gradient(90deg,#0e241ded 0%,#14251c8c 35%,transparent 69%),linear-gradient(0deg,#13241bba,transparent 25%); }
+.portada-contenido { position: relative; padding: clamp(48px,9vh,110px) var(--gutter) 120px; }
+h1 { font-size: clamp(64px,7.8vw,122px); line-height: .96; letter-spacing: -.055em; font-weight: 530; }
+h1 em { color: #e3e9b1; font-family: var(--font-editorial); font-weight: 400; }
+p { font-size: clamp(16px,1.3vw,20px); line-height: 1.55; margin-top: 28px; color: #e7e9de; }
+.portada-boton { display: inline-flex; gap: 28px; align-items: center; margin-top: 30px; padding: 16px 21px; border-radius: 5px; color: #213529; background: #e7ecc4; font-size: 14px; font-weight: 650; transition: transform .2s,background .2s; }
+.portada-boton:hover { transform: translateY(-2px); background: #f3f6dd; }
+.portada-pie { position: absolute; bottom: 27px; left: var(--gutter); right: var(--gutter); display: flex; justify-content: space-between; gap: 20px; padding-top: 18px; border-top: 1px solid #ffffff40; font-size: 12px; }
+.portada-pie a { color: #fff9ea; }
+@media(max-width:720px) {
+.portada { min-height: max(700px,calc(100svh - var(--sticky-top))); }
+.portada-contenido { padding-top: 38px; }
+h1 { font-size: clamp(58px,12.5vw,86px); }
+.portada-imagen img { object-position: 71% 50%; }
+.portada-sombra { background: linear-gradient(180deg,#14291ef2 0%,#14291ea6 37%,transparent 65%,#14291ece 100%); }
+.portada-pie { font-size: 10px; }
+}
+</style>

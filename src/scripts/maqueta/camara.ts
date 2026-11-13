@@ -1,4 +1,5 @@
 import * as T from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { construirMundo, type TipoMaqueta } from './mundo';
 import { prepararInterior } from './interior';
 import { prepararTransit } from './transit';
@@ -13,8 +14,8 @@ const encuadres = [
   { momento: 0.38, centro: [-28, 1.3, -4.7], vista: [11, 15, 15], alto: 16.5, viaje: 0 },
   { momento: 0.58, centro: [-28, 1.6, -1.1], vista: [16, 17, 24], alto: 24, viaje: 0 },
   { momento: 1, centro: [-2, 0.6, 0], vista: [49, 52, 65], alto: 70, viaje: 0.08 },
-  { momento: 2, centro: [-28, 0.9, 12.5], vista: [32, 28, 48], alto: 38, viaje: 0.36 },
-  { momento: 3, centro: [-5.5, 1.65, 17.6], vista: [27, 22, 38], alto: 25, viaje: 0.63 },
+  { momento: 2, centro: [-26, 1.5, 15.1], vista: [22, 13, 30], alto: 18, viaje: 0.36 },
+  { momento: 3, centro: [-5.5, 1.65, 17.6], vista: [27, 18, 38], alto: 21, viaje: 0.63 },
   { momento: 4, centro: [22.7, 1.65, -5.1], vista: [19, 42, 39], alto: 42, viaje: 0.99 },
   { momento: 5, centro: [23, 1.5, -7.1], vista: [7, 54, 32], alto: 36, viaje: 0.99 },
 ] as const;
@@ -32,16 +33,23 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
   const renderer = new T.WebGLRenderer({ canvas, context, antialias: true });
   renderer.setClearColor(0xe7eee2);
   renderer.toneMapping = T.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.39;
+  renderer.toneMappingExposure = 1.12;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = T.PCFShadowMap;
 
   const escena = new T.Scene();
   escena.background = new T.Color(0xe7eee2);
+  const generadorEntorno = new T.PMREMGenerator(renderer);
+  const estudio = new RoomEnvironment();
+  const reflejos = generadorEntorno.fromScene(estudio, 0.045);
+  escena.environment = reflejos.texture;
+  escena.environmentIntensity = 0.38;
+  estudio.dispose();
+  generadorEntorno.dispose();
   const camera = new T.OrthographicCamera(-1, 1, 1, -1, 0.1, 260);
-  escena.add(new T.HemisphereLight(0xfff6e4, 0xc4d2c1, 2.02));
-  const sol = new T.DirectionalLight(0xffefda, 2.52);
-  sol.position.set(-39, 61, 30);
+  escena.add(new T.HemisphereLight(0xfff6e4, 0x879b91, 1.35));
+  const sol = new T.DirectionalLight(0xffe4bf, 3.1);
+  sol.position.set(-34, 49, 35);
   sol.castShadow = true;
   const pantallaEstrecha = canvas.clientWidth < 760;
   sol.shadow.mapSize.setScalar(pantallaEstrecha ? 1024 : 2048);
@@ -96,9 +104,10 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
   const raycaster = new T.Raycaster();
   const mapaHorizontal = matchMedia('(max-height: 500px) and (min-aspect-ratio: 7/5)');
   let posicionRaton: { x: number; y: number } | undefined;
-  let sobrePlano = false;
-  let aperturaPlano = 0;
-  let tiempoPlano = 0;
+  // La tele se anima a ~30 fps solo mientras se ve, al principio del recorrido.
+  let temporizadorPlano = 0;
+  // En móvil, alto libre entre el borde superior del lienzo y el texto de la portada.
+  let espacioPlano = 0;
   let ancho = 1;
   let alto = 1;
   let avance = 0;
@@ -160,36 +169,34 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
   function moverRaton(evento: PointerEvent) {
     if (evento.pointerType !== 'mouse') return;
     posicionRaton = { x: evento.clientX, y: evento.clientY };
-    if (detectarPlano() !== sobrePlano) solicitar();
   }
 
   function salirRaton() {
     posicionRaton = undefined;
-    if (sobrePlano) solicitar();
   }
 
+  // Punto de la pantalla de la tele bajo el ratón, en coordenadas UV.
   function detectarPlano() {
-    if (!plano || avance >= 0.5 || !posicionRaton || !visible) return false;
+    if (!plano || !posicionRaton) return undefined;
     const rect = canvas.getBoundingClientRect();
     puntero.set(
       2 * (posicionRaton.x - rect.left) / ancho - 1,
       1 - 2 * (posicionRaton.y - rect.top) / alto,
     );
-    if (Math.abs(puntero.x) > 1 || Math.abs(puntero.y) > 1) return false;
+    if (Math.abs(puntero.x) > 1 || Math.abs(puntero.y) > 1) return undefined;
     raycaster.setFromCamera(puntero, camera);
-    return raycaster.intersectObject(plano.respaldo, false).length > 0;
+    return raycaster.intersectObject(plano.pantalla, false)[0]?.uv;
   }
 
   function animarPlano(tiempo: number) {
-    if (!plano) return;
-    sobrePlano = detectarPlano();
-    const objetivo = Number(sobrePlano);
-    const segundos = Math.min(0.05, (tiempo - tiempoPlano) / 1000);
-    tiempoPlano = tiempo;
-    aperturaPlano = Math.abs(aperturaPlano - objetivo) < 0.01
-      ? objetivo : T.MathUtils.damp(aperturaPlano, objetivo, 23, segundos);
-    plano.animar(suavizar(0, 1, aperturaPlano));
-    if (aperturaPlano !== objetivo) solicitar();
+    if (!plano || avance >= 0.5 || visita) return;
+    plano.animar(tiempo, detectarPlano());
+    if (!temporizadorPlano) {
+      temporizadorPlano = window.setTimeout(() => {
+        temporizadorPlano = 0;
+        solicitar();
+      }, 33);
+    }
   }
 
   function pintar(tiempo: number) {
@@ -223,7 +230,10 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
     const salidaCorcho = suavizar(0, 0.38, avance);
     maqueta?.style.setProperty('--visibilidad-corcho', String(1 - salidaCorcho));
     const alturaNormal = movil ? tamaño * (0.72 + 0.57 / Math.max(0.40, aspecto)) : tamaño;
-    const anchoCorcho = movil ? 5.7 : 9.2;
+    // En móvil la tele (≈3,3 de alto con su peana) ocupa el hueco que deja el texto de portada.
+    const encajarPlano = movil && espacioPlano > 70 && !mapaHorizontal.matches;
+    const anchoCorcho = encajarPlano ? Math.max(alto * 3.3 / (0.88 * espacioPlano), 5.4 / aspecto) * aspecto
+      : movil ? 5.7 : 9.2;
     const alturaEscena = Math.max(alturaNormal, anchoCorcho * (1 - salidaCorcho) / aspecto);
     const haciaMapa = suavizar(4, 5, avanceCamara);
     const anchoMapa = movil ? 43 : 63;
@@ -231,7 +241,9 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
     const margenMapaX = -ancho * 0.19;
     const margenMapaY = -alto * 0.12;
     let margenX = movil ? 0 : -ancho * T.MathUtils.lerp(0.205, 0.165, salidaCorcho);
-    const margenCorcho = T.MathUtils.clamp(0.46 - 1.72 / vertical, 0, mapaHorizontal.matches ? 0.12 : 0.28);
+    const margenCorcho = encajarPlano
+      ? T.MathUtils.clamp(0.5 - (espacioPlano / 2 - 0.25 * alto / vertical) / alto, 0, 0.45)
+      : T.MathUtils.clamp(0.46 - 1.72 / vertical, 0, mapaHorizontal.matches ? 0.12 : 0.28);
     const margenMapaMovil = T.MathUtils.lerp(0.02, 0.23, suavizar(460, 640, alto));
     let margenY = movil ? alto * T.MathUtils.lerp(margenCorcho, T.MathUtils.lerp(0.17, margenMapaMovil, haciaMapa), salidaCorcho) : 0;
     if (mapaHorizontal.matches) {
@@ -335,6 +347,9 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, ancho < 760 ? 1.25 : 1.55));
     renderer.setSize(ancho, alto, false);
     oclusion?.ajustar(ancho, alto);
+    const textoPortada = plano ? maqueta?.querySelector<HTMLElement>('.consultoria-texto') : null;
+    // El texto se desplaza con la página y el lienzo queda fijo: se mide como si no hubiera scroll.
+    espacioPlano = textoPortada ? textoPortada.getBoundingClientRect().top + window.scrollY - canvas.getBoundingClientRect().top : 0;
     solicitar();
   }
 
@@ -375,6 +390,7 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
     if (destruida) return;
     destruida = true;
     cancelAnimationFrame(frame);
+    clearTimeout(temporizadorPlano);
     oclusion?.liberar();
     oclusion = null;
     tamaño.disconnect();
@@ -407,9 +423,12 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
     });
     geometrias.forEach((geometria) => geometria.dispose());
     materiales.forEach((material) => {
-      if ('map' in material && material.map instanceof T.Texture) material.map.dispose();
+      for (const valor of Object.values(material)) {
+        if (valor instanceof T.Texture) valor.dispose();
+      }
       material.dispose();
     });
+    reflejos.dispose();
     sol.shadow.dispose();
     renderer.dispose();
   }
