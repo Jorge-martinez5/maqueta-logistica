@@ -28,6 +28,7 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
   const copa = new T.IcosahedronGeometry(0.5, 1);
   const suelo = new T.Group();
   const materiales = new Map<Tono, T.MeshStandardMaterial>();
+  const rotulos: (() => void)[] = [];
 
   function material(tono: Tono) {
     if (!materiales.has(tono)) {
@@ -55,21 +56,38 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
     return volumen(parent, tono, tamaño, posicion);
   }
 
-  function texto(parent: T.Object3D, linea: string, tamaño: [number, number], posicion: Posicion, color = '#235442') {
+  // Cada rótulo se dibuja una vez y lo comparten todas las placas con el mismo texto y color.
+  const acabadosRotulo = new Map<string, T.MeshBasicMaterial>();
+  function acabadoRotulo(linea: string, color: string) {
+    const clave = `${linea}|${color}`;
+    if (acabadosRotulo.has(clave)) return acabadosRotulo.get(clave)!;
     const lienzo = document.createElement('canvas');
-    lienzo.width = 512;
-    lienzo.height = 128;
+    lienzo.width = 1024;
+    lienzo.height = 256;
     const ctx = lienzo.getContext('2d')!;
-    ctx.fillStyle = color;
-    ctx.textBaseline = 'middle';
-    ctx.textAlign = 'center';
-    ctx.font = '700 82px Arial';
-    ctx.fillText(linea, 256, 66, 490);
     const textura = new T.CanvasTexture(lienzo);
     textura.colorSpace = T.SRGBColorSpace;
-    const placa = new T.Mesh(new T.PlaneGeometry(...tamaño), new T.MeshBasicMaterial({
+    textura.anisotropy = anisotropia;
+    const dibujar = () => {
+      ctx.clearRect(0, 0, lienzo.width, lienzo.height);
+      ctx.fillStyle = color;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'center';
+      ctx.font = '720 164px "Archivo Variable", Arial, sans-serif';
+      ctx.fillText(linea, 512, 132, 980);
+      textura.needsUpdate = true;
+    };
+    dibujar();
+    rotulos.push(dibujar);
+    const acabado = new T.MeshBasicMaterial({
       map: textura, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2,
-    }));
+    });
+    acabadosRotulo.set(clave, acabado);
+    return acabado;
+  }
+
+  function texto(parent: T.Object3D, linea: string, tamaño: [number, number], posicion: Posicion, color = '#235442') {
+    const placa = new T.Mesh(new T.PlaneGeometry(...tamaño), acabadoRotulo(linea, color));
     placa.position.set(...posicion);
     parent.add(placa);
     return placa;
@@ -432,6 +450,11 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
 
   return {
     techo, frente, tractor, carretilla, horquillas, entrada, salida, ruta, cerrarOficina, estanterias, marcasAlmacen, cargaRuta, plano, puestoTms,
+    actualizarTipografia() {
+      rotulos.forEach((dibujar) => dibujar());
+      plano?.actualizarTipografia();
+      puestoTms?.pantalla.redibujar();
+    },
     trazar(progreso: number) {
       trazado.geometry.setDrawRange(0, Math.floor(progreso * segmentos) * carasPorSegmento);
     },

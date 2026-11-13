@@ -41,7 +41,8 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
   const sol = new T.DirectionalLight(0xffefda, 2.52);
   sol.position.set(-39, 61, 30);
   sol.castShadow = true;
-  sol.shadow.mapSize.setScalar(canvas.clientWidth < 760 ? 1024 : 1536);
+  const pantallaEstrecha = canvas.clientWidth < 760;
+  sol.shadow.mapSize.setScalar(pantallaEstrecha ? 1024 : 2048);
   sol.shadow.camera.left = -65;
   sol.shadow.camera.right = 65;
   sol.shadow.camera.top = 53;
@@ -58,7 +59,8 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
   base.receiveShadow = true;
   escena.add(base);
 
-  const mundo = construirMundo(escena, tipo, renderer.capabilities.getMaxAnisotropy());
+  const anisotropia = renderer.capabilities.getMaxAnisotropy();
+  const mundo = construirMundo(escena, tipo, anisotropia);
   const maqueta = canvas.closest<HTMLElement>('[data-maqueta]');
   const recorrido = tipo === 'interior' ? prepararInterior(mundo)
     : tipo === 'transit' ? prepararTransit(mundo.tractor) : null;
@@ -66,7 +68,11 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
   const visitaTransit = tipo === 'terminal' ? prepararTransit(mundo.tractor, true) : null;
   const visitaTms = mundo.puestoTms ? prepararTms(mundo.puestoTms.pantalla, mundo.puestoTms.monitor) : null;
   const pistaGame = tipo === 'terminal' ? crearPistaGame() : null;
-  if (pistaGame) escena.add(pistaGame.pista);
+  if (pistaGame) {
+    pistaGame.textura.anisotropy = anisotropia;
+    escena.add(pistaGame.pista);
+  }
+  if (mundo.puestoTms) mundo.puestoTms.pantalla.textura.anisotropy = anisotropia;
   const visitaGame = pistaGame ? prepararGame(pistaGame) : null;
   const { techo, frente, tractor, carretilla, horquillas, ruta, trazar, cerrarOficina, estanterias, cargaRuta, marcasAlmacen, plano } = mundo;
   const mapa = maqueta?.querySelector<HTMLElement>('#aplicaciones');
@@ -298,12 +304,13 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
     enlacesMapa.style.opacity = '0';
     capaMapa.append(enlacesMapa);
   }
+  document.fonts.ready.then(() => {
+    if (destruida) return;
+    mundo.actualizarTipografia();
+    pistaGame?.redibujar();
+    solicitar();
+  });
   if (plano) {
-    document.fonts.ready.then(() => {
-      if (destruida) return;
-      plano.actualizarTipografia();
-      solicitar();
-    });
     window.addEventListener('pointermove', moverRaton, { passive: true });
     document.documentElement.addEventListener('pointerleave', salirRaton);
     window.addEventListener('blur', salirRaton);

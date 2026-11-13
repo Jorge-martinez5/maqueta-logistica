@@ -27,7 +27,10 @@
   .consultoria::before { display: none; }
   :global(.maqueta-lista) .consultoria { background: transparent; }
   :global(.maqueta-lista) .consultoria-imagen { visibility: hidden; }
+  /* El texto describe el plano de corcho, que solo existe en la escena 3D. */
+  figcaption { display: none; }
   :global(.maqueta-lista) figcaption {
+    display: block;
     position: absolute;
     width: 1px;
     height: 1px;

@@ -75,7 +75,15 @@ export function crearPantallaTms() {
   }
 
   actualizar(0);
-  return { textura, actualizar };
+  return {
+    textura,
+    actualizar,
+    redibujar() {
+      const etapa = ultimo;
+      ultimo = -1;
+      actualizar(etapa / 32 + 1);
+    },
+  };
 }
 
 export function prepararTms(pantalla: ReturnType<typeof crearPantallaTms>, monitor: T.Vector3) {

@@ -9,10 +9,7 @@ const { recorrido, integrado = false } = Astro.props;
 const { producto, inicio, sector, encabezado, introduccion, accion, imagenes, paradas } = recorrido;
 const idParada = (id: string) => integrado ? `${imagenes}-${id}` : id;
 const Titulo = integrado ? 'h2' : 'h1';
-const foto = (id: string) => recorrido.tipo === 'tms'
-  ? id === 'inicio' ? '/maqueta/almacen.webp' : '/maqueta/transporte.webp'
-  : recorrido.tipo === 'game' ? '/ruta/tenis.webp'
-  : `/maqueta/${imagenes}-${id}.webp`;
+const foto = (id: string) => `/maqueta/${imagenes}-${id}.webp`;
 ---
 <div
   class="maqueta-tramo"

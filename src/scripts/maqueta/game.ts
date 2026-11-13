@@ -106,7 +106,17 @@ export function crearPistaGame() {
   }
 
   actualizar(0);
-  return { pista, marcador: marcador.position.clone().add(pista.position), actualizar };
+  return {
+    pista,
+    textura,
+    marcador: marcador.position.clone().add(pista.position),
+    actualizar,
+    redibujar() {
+      const estado = estadoAnterior;
+      estadoAnterior = -1;
+      actualizar(estado === 2 ? 2.75 : estado === 1 ? 1.75 : 0);
+    },
+  };
 }
 
 export function prepararGame(pista: ReturnType<typeof crearPistaGame>) {
