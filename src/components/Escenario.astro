@@ -24,4 +24,5 @@ const { etiqueta, paradas, tipo = 'terminal' } = Astro.props;
   <div class="maqueta-capitulos">
     <slot />
   </div>
+  {tipo === 'terminal' && <div class="maqueta-anclajes"><div class="maqueta-anclajes-stage" data-anclajes></div></div>}
 </section>

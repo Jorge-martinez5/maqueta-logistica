@@ -37,7 +37,7 @@ let escenas = todasLasEscenas.filter((escena) => !escena.closest('[hidden]'));
 let visitaActiva: TipoVisita | undefined;
 
 function tipoVisita(valor?: string): TipoVisita | undefined {
-  return valor === 'interior' || valor === 'transit' ? valor : undefined;
+  return valor === 'interior' || valor === 'transit' || valor === 'tms' || valor === 'game' ? valor : undefined;
 }
 
 function visitaDe(escena: HTMLElement | null) {
@@ -178,8 +178,7 @@ motion.add({
     const hash = inicioVisita ? `#${inicioVisita.id}` : enlace.hash;
     const destino = document.getElementById(hash.slice(1));
     const esParadaTransit = tipo === 'transit' && escenas.some(({ id }) => id && hash === `#${id}`);
-    const esVueltaAlMapa = hash === '#aplicaciones' && (visitaActiva || enlace.closest('#tissga'));
-    if (destino && (hash === '#terminal' || hash === '#tistms' || esParadaTransit || esVueltaAlMapa || visitaDe(destino))) {
+    if (destino && (hash === '#terminal' || hash === '#tistms' || hash === '#aplicaciones' || esParadaTransit || visitaDe(destino))) {
       evento.preventDefault();
       if (nuevaVisita && nuevaVisita !== visitaActiva) {
         actualizarVisita(nuevaVisita);
@@ -187,6 +186,17 @@ motion.add({
       if (location.hash !== hash) {
         origenAncla = { hash: location.hash, posicion: window.scrollY };
         history.pushState({ ...history.state, maquetaDestino: hash }, '', hash);
+      }
+      if (hash === '#aplicaciones' && evento.detail === 0) {
+        if (lenis) lenis.scrollTo(destino, { immediate: true });
+        else destino.scrollIntoView({ behavior: 'instant' });
+        ScrollTrigger.update();
+        cancelAnimationFrame(restauracion);
+        restauracion = requestAnimationFrame(() => {
+          destino.focus({ preventScroll: true });
+          terminarNavegacion();
+        });
+        return;
       }
       destino.focus({ preventScroll: true });
       if (lenis) lenis.scrollTo(destino, {

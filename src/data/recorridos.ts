@@ -1,6 +1,40 @@
 import { productos } from './negocio';
 
 export const recorridos = {
+  game: {
+    producto: productos.find(({ id }) => id === 'tisgame')!,
+    tipo: 'game',
+    inicio: 'pista-tisgame',
+    sector: 'Clubes y competiciones',
+    etiqueta: 'Recorrido por el marcador de tenis con TisGame',
+    encabezado: ['A pie', 'de pista.'],
+    introduccion: 'Seguid el marcador de un partido de tenis, punto a punto.',
+    accion: 'Ver el marcador',
+    imagenes: 'game',
+    paradas: [
+      { id: 'juego', nombre: 'Juego', titulo: 'Treinta iguales.', texto: 'En la pista 1, el jugador A va por delante 5–4 en el primer set. El juego está igualado a 30.' },
+      { id: 'punto', nombre: 'Punto', titulo: 'Punto de set.', texto: 'El jugador A gana el siguiente punto. El marcador pasa a 40–30.' },
+      { id: 'set', nombre: 'Set', titulo: 'Primer set, 6–4.', texto: 'El jugador A cierra el set. El resultado queda registrado y el marcador se prepara para el siguiente.' },
+    ],
+  },
+  tms: {
+    producto: productos.find(({ id }) => id === 'tistms')!,
+    tipo: 'tms',
+    inicio: 'escritorio-tistms',
+    sector: 'Gestión de transporte',
+    titulo: 'TisTms | Planificación del transporte',
+    descripcion: 'Asignación de un vehículo a un viaje desde el puesto de tráfico.',
+    etiqueta: 'Recorrido por el puesto de tráfico con TisTms',
+    encabezado: ['Desde el puesto', 'de tráfico.'],
+    introduccion: 'Acercaos al monitor para ver cómo se asigna un vehículo a un viaje.',
+    accion: 'Ver la planificación',
+    imagenes: 'tms',
+    paradas: [
+      { id: 'viaje', nombre: 'Viaje', titulo: 'Un viaje pendiente.', texto: 'El equipo de tráfico tiene un viaje de Murcia a Valencia y necesita asignarle un vehículo.' },
+      { id: 'asignacion', nombre: 'Asignación', titulo: 'Elegid un vehículo.', texto: 'TisTms muestra qué recursos están disponibles. El equipo selecciona el vehículo 01 para ese viaje.' },
+      { id: 'confirmacion', nombre: 'Confirmación', titulo: 'Vehículo asignado.', texto: 'El vehículo queda vinculado al viaje y el equipo puede comprobar la asignación en la planificación.' },
+    ],
+  },
   interior: {
     producto: productos.find(({ id }) => id === 'tissga')!,
     tipo: 'interior',

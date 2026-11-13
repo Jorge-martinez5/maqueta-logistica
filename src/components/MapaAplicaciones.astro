@@ -2,14 +2,14 @@
 import { aplicacionesMapa } from '../data/aplicaciones';
 import { productos } from '../data/negocio';
 ---
-<section class="maqueta-tramo mapa-aplicaciones" id="aplicaciones" data-escena="aplicaciones" aria-labelledby="mapa-titulo" tabindex="-1">
+<section class="maqueta-tramo mapa-aplicaciones" id="aplicaciones" data-escena="aplicaciones" aria-labelledby="mapa-titulo" tabindex="0">
   <picture class="mapa-fondo">
     <source media="(max-width: 720px)" srcset="/maqueta/aplicaciones-movil.webp" />
     <img src="/maqueta/aplicaciones.webp" width="1440" height="823" alt="" loading="lazy" />
   </picture>
   <div class="mapa-copy">
     <h2 id="mapa-titulo">Mapa de <em>aplicaciones.</em></h2>
-    <p>Elegid una aplicación en las estanterías para ver cómo funciona.</p>
+    <p>Elegid una aplicación en la nave para ver cómo funciona.</p>
   </div>
   <ul class="mapa-enlaces" aria-label="Aplicaciones de Tisnova">
     {aplicacionesMapa.map(({ id, escritorio, movil, recorrido }) => {
@@ -19,7 +19,7 @@ import { productos } from '../data/negocio';
           <a
             class="mapa-punto"
             data-punto-aplicacion
-            data-visita-destino={id === 'tissga' ? 'interior' : id === 'tistransit' ? 'transit' : undefined}
+            data-visita-destino={id === 'tissga' ? 'interior' : id === 'tistransit' ? 'transit' : id === 'tistms' ? 'tms' : id === 'tisgame' ? 'game' : undefined}
             data-fila={id === 'tisrural' || id === 'tisgame' ? 'superior' : undefined}
             href={recorrido ?? producto.url}
             aria-label={`${producto.nombre} · ${producto.sector}`}
@@ -44,6 +44,17 @@ import { productos } from '../data/negocio';
 
   .mapa-fondo img { width: 100%; height: 100%; object-fit: fill; }
   :global(.maqueta-lista) .mapa-fondo { display: none; }
+  :global([data-anclajes]) .mapa-enlaces { position: absolute; inset: 0; }
+  :global([data-anclajes]) .mapa-punto {
+    left: 0;
+    top: 0;
+    translate: -50% calc(-100% - var(--separacion-punto, 0px));
+    transform: translate3d(
+      var(--anclaje-x, 0px),
+      max(var(--anclaje-y, 0px), calc(48px + var(--separacion-punto, 0px))),
+      0
+    );
+  }
 
   .mapa-copy {
     z-index: 2;
@@ -54,13 +65,13 @@ import { productos } from '../data/negocio';
 
   .mapa-copy h2 { font-size: clamp(46px, 5.65vw, 84px); }
   .mapa-copy p { margin: 18px auto 0; color: var(--muted); max-width: 31ch; }
-  .mapa-enlaces { list-style: none; opacity: var(--opacidad-puntos, 1); }
+  .mapa-enlaces { list-style: none; }
 
   .mapa-punto {
     position: absolute;
     z-index: 3;
-    left: clamp(65px, var(--proyeccion-x, var(--mapa-x)), calc(100% - 65px));
-    top: calc(var(--proyeccion-y, var(--escenario) * var(--mapa-y)) + var(--desplazamiento-mapa, 0px) - var(--separacion-punto, 0px));
+    left: clamp(65px, var(--mapa-x), calc(100% - 65px));
+    top: calc(var(--escenario) * var(--mapa-y) - var(--separacion-punto, 0px));
     translate: -50% -100%;
     display: flex;
     align-items: center;
@@ -115,8 +126,8 @@ import { productos } from '../data/negocio';
     .mapa-copy h2 { font-size: clamp(33px, 9.5vw, 52px); }
     .mapa-copy p { margin-top: 12px; font-size: .88rem; }
     .mapa-punto {
-      left: clamp(49px, var(--proyeccion-x, var(--movil-x)), calc(100% - 49px));
-      top: calc(var(--proyeccion-y, var(--escenario) * var(--movil-y)) + var(--desplazamiento-mapa, 0px) - var(--separacion-punto, 0px));
+      left: clamp(49px, var(--movil-x), calc(100% - 49px));
+      top: calc(var(--escenario) * var(--movil-y) - var(--separacion-punto, 0px));
       gap: 5px;
       padding-inline: 8px;
       font-size: .72rem;
@@ -124,12 +135,18 @@ import { productos } from '../data/negocio';
     .mapa-punto img { width: 16px; height: 16px; }
   }
 
+  @media (max-width: 720px) and (min-height: 501px) {
+    :global(.maqueta-lista) .mapa-aplicaciones {
+      min-height: calc(max(var(--escenario), var(--capitulo-minimo)) + 22svh);
+    }
+  }
+
   @media (max-width: 500px) {
     .mapa-punto[data-fila="superior"] { --separacion-punto: clamp(0px, (500px - 100vw) * .17, 24px); }
   }
 
   @media (max-height: 500px) {
-    .mapa-aplicaciones {
+    :global(.maqueta:not(.maqueta-lista)) .mapa-aplicaciones {
       display: grid;
       align-content: start;
       justify-items: center;
@@ -137,8 +154,8 @@ import { productos } from '../data/negocio';
       padding: 20px var(--gutter) 88px;
       background: #eef3e9;
     }
-    .mapa-aplicaciones::before { display: none; }
-    .mapa-fondo, :global(.maqueta-lista) .mapa-fondo {
+    :global(.maqueta:not(.maqueta-lista)) .mapa-aplicaciones::before { display: none; }
+    .mapa-fondo {
       position: static;
       display: block;
       width: min(100%, 420px);
@@ -150,13 +167,50 @@ import { productos } from '../data/negocio';
     .mapa-copy { order: -1; width: min(100%, 420px); }
     .mapa-copy h2 { font-size: clamp(30px, 6vw, 42px); }
     .mapa-copy p { margin-top: 8px; }
-    .mapa-enlaces {
+    :global(.maqueta:not(.maqueta-lista)) .mapa-enlaces {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
       width: min(100%, 420px);
     }
-    .mapa-punto { position: relative; inset: auto; translate: none; justify-content: center; }
-    .mapa-punto::before, .mapa-punto::after { display: none; }
+    :global(.maqueta:not(.maqueta-lista)) .mapa-punto {
+      position: relative;
+      inset: auto;
+      translate: none;
+      justify-content: center;
+    }
+    :global(.maqueta:not(.maqueta-lista)) .mapa-punto::before,
+    :global(.maqueta:not(.maqueta-lista)) .mapa-punto::after { display: none; }
+  }
+
+  @media (max-height: 500px) and (min-aspect-ratio: 7/5) {
+    :global(.maqueta-lista) .mapa-aplicaciones {
+      min-height: var(--escenario);
+      justify-content: flex-start;
+      align-items: center;
+      padding: 12px var(--gutter) calc(var(--hud-alto) + 12px);
+    }
+    :global(.maqueta-lista) .mapa-copy { width: 36%; }
+    :global(.maqueta-lista) .mapa-copy h2 { font-size: clamp(25px, 4vw, 40px); }
+    :global(.maqueta-lista) .mapa-copy p { margin-top: 8px; font-size: .84rem; }
+  }
+
+  @media (max-height: 360px) and (min-aspect-ratio: 7/5) {
+    :global([data-anclajes]) .mapa-enlaces {
+      inset: 48px var(--gutter) auto auto;
+      display: grid;
+      grid-template-columns: repeat(2, max-content);
+      gap: 5px 8px;
+    }
+    :global([data-anclajes]) .mapa-punto {
+      position: relative;
+      inset: auto;
+      transform: none;
+      translate: none;
+      min-height: 40px;
+      justify-content: center;
+    }
+    :global([data-anclajes]) .mapa-punto::before,
+    :global([data-anclajes]) .mapa-punto::after { display: none; }
   }
 </style>

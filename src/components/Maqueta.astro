@@ -31,7 +31,7 @@ const paradas = [
         <nav class="maqueta-paradas" aria-label={etiqueta} data-hud-visita={tipo} hidden>
           <a href="#aplicaciones"><span aria-hidden="true"></span>Mapa</a>
           {paradas.map(({ id, nombre }) => (
-            <a href={`#${imagenes}-${id}`} data-destino={`${imagenes}-${id}`}><span aria-hidden="true"></span>{id === 'documento' ? 'DeCA' : id === 'comprobacion' ? 'Revisión' : nombre}</a>
+            <a href={`#${imagenes}-${id}`} data-destino={`${imagenes}-${id}`}><span aria-hidden="true"></span>{id === 'documento' ? 'DeCA' : id === 'comprobacion' ? 'Revisión' : id === 'confirmacion' ? 'Asignado' : nombre}</a>
           ))}
         </nav>
       ))}

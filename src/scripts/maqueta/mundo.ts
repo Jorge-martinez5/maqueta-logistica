@@ -1,6 +1,8 @@
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { aplicacionesMapa } from '../../data/aplicaciones';
+import { crearPlano } from './plano';
+import { crearPantallaTms } from './tms';
 
 const colores = {
   cal: 0xf8f8ed, blanco: 0xfffff6, hormigon: 0xd6dbcc, junta: 0xb9c5b1,
@@ -16,7 +18,7 @@ type Posicion = [number, number, number];
 
 export type TipoMaqueta = 'terminal' | 'interior' | 'transit';
 
-export function construirMundo(escena: T.Scene, tipo: TipoMaqueta = 'terminal') {
+export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: number) {
   const interior = tipo === 'interior';
   const transit = tipo === 'transit';
   const terminal = tipo === 'terminal';
@@ -160,6 +162,25 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta = 'terminal') 
     caja('blanco', [0.25, 0.10, 0.43], [x, 5.49, 21.03]);
   }
 
+  function persona(parent: T.Group, x: number, z: number, giro: number, ropa: Tono) {
+    const grupo = new T.Group();
+    grupo.position.set(x, 0.25, z);
+    grupo.rotation.y = giro;
+    parent.add(grupo);
+    volumen(grupo, 'salvia', [0.79, 0.16, 0.73], [0, 0.71, 0.07], redondo);
+    volumen(grupo, 'salvia', [0.78, 0.79, 0.14], [0, 1.05, 0.42], redondo);
+    caja('metal', [0.13, 0.64, 0.13], [0, 0.38, 0.07], grupo);
+    volumen(grupo, ropa, [0.54, 0.64, 0.32], [0, 1.12, 0], redondo);
+    volumen(grupo, 'piel', [0.4, 0.48, 0.39], [0, 1.68, -0.04], copa);
+    volumen(grupo, 'madera', [0.41, 0.22, 0.41], [0, 1.85, 0.01], copa);
+    for (const lado of [-1, 1]) {
+      volumen(grupo, 'negro', [0.24, 0.57, 0.24], [lado * 0.15, 0.48, -0.24], redondo);
+      volumen(grupo, ropa, [0.17, 0.20, 0.42], [lado * 0.28, 1.15, -0.23], redondo);
+      volumen(grupo, 'piel', [0.15, 0.13, 0.21], [lado * 0.28, 1.17, -0.45], redondo);
+    }
+  }
+
+
   // La oficina ocupa la misma parcela en el encuadre interior y en la terminal.
   const oficina = new T.Group();
   const fachada = new T.Group();
@@ -193,15 +214,18 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta = 'terminal') 
     tejadoOficina.castShadow = progreso === 1;
   }
 
+  const plano = terminal ? crearPlano(anisotropia) : null;
   if (interior || transit) cerrarOficina(1);
   else {
     caja('tierra', [4.8, 0.16, 1.78], [-0.9, 1.39, 1.12], oficina);
     for (const x of [-2.94, 1.14]) {
       caja('madera', [0.12, 1.09, 1.42], [x, 0.82, 1.12], oficina);
     }
-    caja('cal', [1.04, 0.025, 0.64], [-0.88, 1.48, 1.03], oficina);
-    for (const x of [-1.18, -0.88, -0.58]) caja('salvia', [0.17, 0.012, 0.18], [x, 1.497, 1.05], oficina);
-    for (const x of [-2.42, 0.58]) {
+    if (plano) {
+      plano.objeto.position.set(-30.3, 3.13, -8.49);
+      escena.add(plano.objeto);
+    }
+    for (const x of [-2.52, 0.72]) {
       caja('metal', [0.78, 0.06, 0.55], [x, 1.49, 1.52], oficina);
       caja('cristal', [0.78, 0.48, 0.07], [x, 1.72, 1.28], oficina).rotation.x = -0.14;
     }
@@ -209,9 +233,8 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta = 'terminal') 
       caja('tierra', [2.48, 0.17, 1.28], [x, 1.39, -2.88], oficina);
       caja('madera', [0.25, 1.06, 1.08], [x + 0.95, 0.79, -2.88], oficina);
       caja('metal', [0.1, 1.06, 1.08], [x - 1.06, 0.79, -2.88], oficina);
-      caja('metal', [0.18, 0.29, 0.2], [x, 1.62, -3.2], oficina);
-      caja('cristal', [1.12, 0.63, 0.10], [x, 2, -3.2], oficina);
-      caja('cal', [0.71, 0.05, 0.31], [x, 1.5, -2.73], oficina);
+      caja('metal', [0.84, 0.055, 0.55], [x, 1.5, -2.75], oficina);
+      caja('cristal', [0.84, 0.47, 0.07], [x, 1.74, -2.98], oficina).rotation.x = -0.15;
     }
     caja('junta', [0.16, 2.3, 3.5], [2.3, 1.4, -2.35], oficina);
     volumen(oficina, 'verde', [1.38, 2.85, 1.15], [4.23, 1.69, -3], redondo);
@@ -220,27 +243,10 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta = 'terminal') 
       caja('semaforo', [0.08, 0.05, 0.04], [3.8, y, -2.37], oficina);
     }
 
-    function persona(x: number, z: number, giro: number, ropa: Tono) {
-      const grupo = new T.Group();
-      grupo.position.set(x, 0.25, z);
-      grupo.rotation.y = giro;
-      oficina.add(grupo);
-      volumen(grupo, 'salvia', [0.79, 0.16, 0.73], [0, 0.71, 0.07], redondo);
-      volumen(grupo, 'salvia', [0.78, 0.79, 0.14], [0, 1.05, 0.42], redondo);
-      caja('metal', [0.13, 0.64, 0.13], [0, 0.38, 0.07], grupo);
-      volumen(grupo, ropa, [0.54, 0.64, 0.32], [0, 1.12, 0], redondo);
-      volumen(grupo, 'piel', [0.4, 0.48, 0.39], [0, 1.68, -0.04], copa);
-      volumen(grupo, 'madera', [0.41, 0.22, 0.41], [0, 1.85, 0.01], copa);
-      for (const lado of [-1, 1]) {
-        volumen(grupo, 'negro', [0.24, 0.57, 0.24], [lado * 0.15, 0.48, -0.24], redondo);
-        volumen(grupo, ropa, [0.17, 0.20, 0.42], [lado * 0.28, 1.15, -0.23], redondo);
-        volumen(grupo, 'piel', [0.15, 0.13, 0.21], [lado * 0.28, 1.17, -0.45], redondo);
-      }
-    }
 
-    persona(-2.38, 2.75, -0.17, 'cal');
-    persona(0.58, 2.75, 0.22, 'bosque');
-    persona(-0.9, -0.49, Math.PI, 'salvia');
+    persona(oficina, -2.38, 2.75, -0.17, 'cal');
+    persona(oficina, 0.58, 2.75, 0.22, 'bosque');
+    persona(oficina, -0.9, -0.49, Math.PI, 'salvia');
   }
 
   for (let x = -36.8; x <= -15; x += 5.5) caja('carretera', [0.1, 0.012, 5.5], [x, 0.06, 5.3]);
@@ -323,10 +329,34 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta = 'terminal') 
       }
     }
   }
-  const estanterias = tipo === 'terminal' ? aplicacionesMapa.map(({ posicion: [x, z] }) => {
+  const puestoTms = terminal ? (() => {
+    const puesto = new T.Group();
+    puesto.position.set(10.1, 0.24, 2.3);
+    suelo.add(puesto);
+    caja('junta', [4.1, 0.026, 3.65], [0, 0.025, 0], puesto);
+    volumen(puesto, 'madera', [3.35, 0.16, 1.32], [0, 1.22, -0.52], redondo);
+    for (const x of [-1.38, 1.38]) caja('metal', [0.12, 1.12, 1.05], [x, 0.59, -0.52], puesto);
+    caja('metal', [0.16, 0.48, 0.17], [0, 1.52, -1.04], puesto);
+    volumen(puesto, 'negro', [2.14, 1.39, 0.16], [0, 2.12, -0.88], redondo);
+    caja('acero', [0.93, 0.05, 0.32], [0, 1.33, -0.25], puesto);
+    caja('cal', [0.49, 0.04, 0.32], [-1.24, 1.33, -0.55], puesto);
+    persona(puesto, 0, 0.86, 0, 'bosque');
+
+    const pantalla = crearPantallaTms();
+    const monitor = new T.Vector3(10.1, 2.36, 1.51);
+    const superficie = new T.Mesh(
+      new T.PlaneGeometry(2.02, 1.2625),
+      new T.MeshBasicMaterial({ map: pantalla.textura, toneMapped: false }),
+    );
+    superficie.position.copy(monitor);
+    escena.add(superficie);
+    return { pantalla, monitor };
+  })() : null;
+
+  const estanterias = tipo === 'terminal' ? aplicacionesMapa.map(({ id, posicion: [x, z] }) => {
     const base = caja('lima', [3.4, 0.026, 4.15], [x, 0.253, z], escena);
     base.visible = false;
-    return { base, anclaje: new T.Vector3(x, 5.4, z) };
+    return { base, anclaje: new T.Vector3(x, id === 'tistms' ? 3.4 : 5.4, z) };
   }) : [];
   for (const x of [20.35, 25.65]) caja('carretera', [0.10, 0.015, 20.2], [x, 0.247, -7.0]);
   for (const x of [9.1, 12.2, 31.5, 35.9]) palet(x, 0.23, 0.65, true);
@@ -401,7 +431,7 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta = 'terminal') 
   escena.add(trazado);
 
   return {
-    techo, frente, tractor, carretilla, horquillas, entrada, salida, ruta, cerrarOficina, estanterias, marcasAlmacen, cargaRuta,
+    techo, frente, tractor, carretilla, horquillas, entrada, salida, ruta, cerrarOficina, estanterias, marcasAlmacen, cargaRuta, plano, puestoTms,
     trazar(progreso: number) {
       trazado.geometry.setDrawRange(0, Math.floor(progreso * segmentos) * carasPorSegmento);
     },

@@ -6,7 +6,7 @@ import { negocio } from '../data/negocio';
 import type { Recorrido } from '../data/recorridos';
 
 interface Props {
-  recorrido: Recorrido;
+  recorrido: Extract<Recorrido, { tipo: 'interior' | 'transit' }>;
 }
 
 const { recorrido } = Astro.props;
