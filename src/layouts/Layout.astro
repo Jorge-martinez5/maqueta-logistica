@@ -32,6 +32,14 @@ const structuredData = {
     <meta name="theme-color" content="#fafbf6" />
     <meta name="page-type" content="software" />
     <meta name="site-kind" content="software" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:site_name" content="Tisnova" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={`${negocio.web}/brand/social.png`} />
+    <meta property="og:image:alt" content="Tisnova Soluciones" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>{title}</title>
     <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
   </head>

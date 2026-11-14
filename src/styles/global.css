@@ -111,16 +111,21 @@ address a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .footer-inner { display: flex; justify-content: space-between; align-items: center; gap: 17px; padding-block: 24px; color: var(--muted); font-size: .78rem; }
 .footer-inner > div { display: flex; flex-wrap: wrap; gap: 14px; }
 
+/* Con seis enlaces, la navegación completa no cabe por debajo de este ancho. */
+@media (max-width: 940px) {
+  .site-nav { display: none; }
+  .header-cta { margin-left: auto; gap: 5px; padding: 6px 11px; }
+  .mobile-nav { display: block; font-size: .82rem; }
+  .mobile-nav summary { padding: 6px 10px; border: 1px solid #bbd0bc; border-radius: 999px; cursor: pointer; }
+  .mobile-nav nav { position: absolute; z-index: 1; top: var(--sticky-top); right: var(--gutter); display: grid; min-width: 170px; padding: 7px; box-shadow: 0 12px 32px #1f342024; border: 1px solid var(--rule); border-radius: 8px; background: #fff; }
+  .mobile-nav nav a { padding: 10px 9px; border-radius: 5px; }
+  .mobile-nav nav a:hover { background: #eef4eb; }
+}
+
 @media (max-width: 720px) {
   :root { --header-height: max(63px, calc(31px + 2rem)); }
   .header-inner { flex-wrap: wrap; min-height: var(--header-height); height: auto; gap: 5px 10px; padding-block: 6px; }
-  .site-nav { display: none; }
   .brand img { width: 110px; }
-  .header-cta { margin-left: auto; gap: 5px; padding: 6px 9px; }
-  .mobile-nav { display: block; font-size: .82rem; }
-  .mobile-nav summary { padding: 6px 7px; border: 1px solid #bbd0bc; border-radius: 999px; cursor: pointer; }
-  .mobile-nav nav { position: absolute; z-index: 1; top: var(--sticky-top); right: var(--gutter); display: grid; min-width: 150px; padding: 7px; border: 1px solid var(--rule); border-radius: 8px; background: #fff; }
-  .mobile-nav nav a { padding: 8px; }
   .maqueta { --hud-abajo: 12px; --hud-alto: max(48px, calc(10px + 2.8rem)); --capitulo-minimo: 620px; }
   .maqueta-tramo { justify-content: center; align-items: flex-end; min-height: max(var(--escenario), var(--capitulo-minimo)); padding: min(41svh, 305px) 17px calc(var(--hud-alto) + 16px + max(0px, var(--capitulo-minimo) - var(--escenario))); }
   .maqueta-copy { width: min(100%, 450px); }

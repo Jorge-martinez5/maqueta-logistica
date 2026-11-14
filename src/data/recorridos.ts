@@ -43,9 +43,9 @@ export const recorridos = {
     accion: 'Ver el marcador',
     imagenes: 'game',
     paradas: [
-      { id: 'juego', nombre: 'Juego', titulo: 'Treinta iguales.', texto: 'En la pista 1, el jugador A va por delante 5–4 en el primer set. El juego está igualado a 30.' },
-      { id: 'punto', nombre: 'Punto', titulo: 'Punto de set.', texto: 'El jugador A gana el siguiente punto. El marcador pasa a 40–30.' },
-      { id: 'set', nombre: 'Set', titulo: 'Primer set, 6–4.', texto: 'El jugador A cierra el set. El resultado queda registrado y el marcador se prepara para el siguiente.' },
+      { id: 'juego', nombre: 'Juego', titulo: 'Treinta iguales.', texto: 'En la pista 1, el jugador A va por delante 5⁠–⁠4 en el primer set. El juego está igualado a 30.' },
+      { id: 'punto', nombre: 'Punto', titulo: 'Punto de set.', texto: 'El jugador A gana el siguiente punto. El marcador pasa a 40⁠–⁠30.' },
+      { id: 'set', nombre: 'Set', titulo: 'Primer set, 6⁠–⁠4.', texto: 'El jugador A cierra el set. El resultado queda registrado y el marcador se prepara para el siguiente.' },
     ],
   },
   tms: {

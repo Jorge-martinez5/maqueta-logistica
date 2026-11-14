@@ -17,6 +17,10 @@ menu?.addEventListener('keydown', (evento) => {
   menu.querySelector('summary')?.focus();
 });
 
+document.addEventListener('click', (evento) => {
+  if (menu?.open && evento.target instanceof Node && !menu.contains(evento.target)) menu.open = false;
+});
+
 const cabecera = document.querySelector<HTMLElement>('.site-header');
 if (cabecera) {
   const medirCabecera = () => {
@@ -304,6 +308,21 @@ motion.add({
     activo = false;
     limpiar();
   };
+});
+
+// Los titulares entran al asomar por el borde inferior. Sin JavaScript o sin movimiento, ya están en su sitio.
+motion.add('(prefers-reduced-motion: no-preference)', () => {
+  if (animacionesPausadas) return;
+  const entrada = new IntersectionObserver((entradas) => {
+    for (const { isIntersecting, target, boundingClientRect } of entradas) {
+      if (!isIntersecting) continue;
+      entrada.unobserve(target);
+      if (boundingClientRect.top < innerHeight * 0.75) continue;
+      gsap.from(target, { y: 28, opacity: 0, duration: 0.8, ease: 'power3.out', clearProps: 'transform,opacity' });
+    }
+  });
+  document.querySelectorAll('[data-reveal]').forEach((titular) => entrada.observe(titular));
+  return () => entrada.disconnect();
 });
 
 if (matchMedia('(prefers-reduced-motion: no-preference)').matches && window.scrollY < 20 && !location.hash) {

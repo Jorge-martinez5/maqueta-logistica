@@ -1,7 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Maqueta from '../components/Maqueta.astro';
-import { negocio, servicios, proyectos, equipo, navegacion, productos } from '../data/negocio';
+import { negocio, servicios, proyectos, clientes, equipo, formaDeTrabajar, navegacion, productos } from '../data/negocio';
 ---
 <Layout>
   <header class="site-header">
@@ -27,7 +27,7 @@ import { negocio, servicios, proyectos, equipo, navegacion, productos } from '..
 
     <section class="section catalogo" id="productos" aria-labelledby="productos-titulo">
       <div class="wrap chapter">
-        <h2 id="productos-titulo">Conoced cada <em>aplicación.</em></h2>
+        <h2 id="productos-titulo" data-reveal>Conoced cada <em>aplicación.</em></h2>
         <p class="section-intro">Explorad el recorrido y consultad las funciones de cada producto.</p>
         <div class="catalogo-lista">
           {productos.map((producto) => {
@@ -45,30 +45,38 @@ import { negocio, servicios, proyectos, equipo, navegacion, productos } from '..
       </div>
     </section>
 
+    <section class="section clientes" id="clientes" aria-labelledby="clientes-titulo">
+      <div class="wrap chapter">
+        <p class="eyebrow">Confianza · El trabajo de cada día</p>
+        <h2 id="clientes-titulo" data-reveal>Empresas con las que <em>trabajamos.</em></h2>
+        <p class="section-intro">Nos confían una parte importante de su día a día. La nuestra es conocerla bien y estar pendientes.</p>
+        <ul class="clientes-lista" aria-label="Algunos de nuestros clientes">
+          {clientes.map(({ nombre, logo, width, height }) => (
+            <li data-forma={width / height < 1.5 ? 'escudo' : width / height > 4.5 ? 'ancho' : undefined}>
+              <img src={`/clientes/${logo}`} width={width} height={height} alt={nombre} loading="lazy" decoding="async" />
+            </li>
+          ))}
+        </ul>
+        <div class="clientes-acuerdo">
+          <img src="/clientes/froet.png" width="173" height="59" alt="FROET" loading="lazy" />
+          <p>Nuestro acuerdo con FROET acerca TisTransit a sus empresas asociadas.</p>
+          <a class="text-link" href="#proyectos">Ver el acuerdo <span aria-hidden="true">↓</span></a>
+        </div>
+      </div>
+    </section>
+
     <section class="section projects" id="proyectos" aria-labelledby="projects-title">
       <div class="wrap chapter">
         <p class="eyebrow">Proyectos y colaboraciones</p>
         <h2 id="projects-title" data-reveal>Conexiones <em>en marcha.</em></h2>
+        <p class="section-intro">Los proyectos y los acuerdos que forman parte de nuestro trabajo.</p>
         <div class="project-list">
-          {proyectos.map(({ categoria, nombre, descripcion, url }) => (
+          {proyectos.map(({ categoria, nombre, descripcion, url, logo }) => (
             <a class="project-link" href={url}>
               <p class="eyebrow">{categoria}</p>
               <h3>{nombre} <span aria-hidden="true">↗</span></h3><p>{descripcion}</p>
+              {logo && <img class="project-logo" src={logo.src} width={logo.width} height={logo.height} alt={logo.alt} loading="lazy" />}
             </a>
-          ))}
-        </div>
-        <a class="text-link proyecto-caso" href="https://chamartin.tisnova.es/">Ver el campeonato de Chamartín <span aria-hidden="true">↗</span></a>
-      </div>
-    </section>
-
-    <section class="section team" id="equipo" aria-labelledby="team-title">
-      <div class="wrap chapter">
-        <p class="eyebrow">Equipo</p>
-        <h2 id="team-title" data-reveal>Hablemos con{' '}<br /><em>nombres propios.</em></h2>
-        <p class="section-intro">Trabajamos juntos en consultoría, desarrollo y sistemas desde Molina de Segura.</p>
-        <div class="team-grid">
-          {equipo.map(({ nombre, foto, width, height }) => (
-            <figure><img src={foto} width={width} height={height} alt={`Retrato de ${nombre}`} loading="lazy" /><figcaption>{nombre}</figcaption></figure>
           ))}
         </div>
       </div>
@@ -77,14 +85,16 @@ import { negocio, servicios, proyectos, equipo, navegacion, productos } from '..
     <section class="section servicios-empresa" id="servicios" aria-labelledby="servicios-titulo">
       <div class="wrap chapter">
         <p class="eyebrow">Servicios</p>
-        <h2 id="servicios-titulo">Vuestro equipo <em>tecnológico.</em></h2>
+        <h2 id="servicios-titulo" data-reveal>Vuestro equipo <em>tecnológico.</em></h2>
         <p class="section-intro">Empezamos por cómo trabajáis y vemos juntos qué conviene resolver primero.</p>
         <ul class="servicios-lista">
-          {servicios.map(({ nombre, descripcion, url }) => (
+          {servicios.map(({ nombre, descripcion, url, puntos }, indice) => (
             <li>
               <a href={url}>
+                <span class="servicio-numero" aria-hidden="true">0{indice + 1}</span>
                 <h3>{nombre} <span aria-hidden="true">↗</span></h3>
                 <p>{descripcion}</p>
+                <ul>{puntos.map((punto) => <li>{punto}</li>)}</ul>
               </a>
             </li>
           ))}
@@ -92,11 +102,40 @@ import { negocio, servicios, proyectos, equipo, navegacion, productos } from '..
       </div>
     </section>
 
+    <section class="section team" id="equipo" aria-labelledby="team-title">
+      <div class="wrap chapter">
+        <p class="eyebrow">Equipo</p>
+        <h2 id="team-title" data-reveal>Hablemos con{' '}<br /><em>nombres propios.</em></h2>
+        <p class="section-intro">Hemos dirigido sistemas y equipos de desarrollo y trabajado en el sector del transporte. Estas son las personas con las que vais a trabajar.</p>
+        <div class="team-grid">
+          {equipo.map(({ nombre, cargo, bio, linkedin, foto, width, height }) => (
+            <figure>
+              <img src={foto} width={width} height={height} alt={`Retrato de ${nombre}`} loading="lazy" />
+              <figcaption>
+                <strong>{nombre}</strong>
+                <span class="team-cargo">{cargo}</span>
+                <span class="team-bio">{bio}</span>
+                <a class="text-link" href={linkedin} rel="noopener" aria-label={`LinkedIn de ${nombre}`}>LinkedIn <span aria-hidden="true">↗</span></a>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+        <div class="forma-trabajar">
+          <h3>El trabajo se comparte. <em>Las decisiones las tomamos con vosotros.</em></h3>
+          <ol>
+            {formaDeTrabajar.map(({ titulo, texto }, indice) => (
+              <li><span aria-hidden="true">0{indice + 1}</span><strong>{titulo}</strong><p>{texto}</p></li>
+            ))}
+          </ol>
+        </div>
+      </div>
+    </section>
+
     <section class="section contact" id="contacto" aria-labelledby="contact-title">
       <div class="wrap chapter">
         <p class="eyebrow">Contacto</p>
         <h2 id="contact-title" data-reveal>Contadnos{' '}<br /><em>vuestro caso.</em></h2>
-        <p class="section-intro">¿Qué tarea os gustaría simplificar? Empecemos por cómo la hacéis hoy.</p>
+        <p class="section-intro">¿Qué tarea os gustaría simplificar? Contadnos qué ocurre y qué utilizáis. Lo revisamos con el equipo y acordamos con vosotros el siguiente paso.</p>
         <a class="button" href={negocio.contacto}>Abrir formulario <span aria-hidden="true">↗</span></a>
         <address>
           <a href={`mailto:${negocio.email}`}>{negocio.email} <span aria-hidden="true">↗</span></a>
@@ -108,10 +147,31 @@ import { negocio, servicios, proyectos, equipo, navegacion, productos } from '..
   </main>
 
   <footer class="site-footer">
+    <div class="wrap footer-top">
+      <div class="footer-marca">
+        <a href="#inicio" class="brand" aria-label="Tisnova, inicio"><img src={negocio.logo} alt="Tisnova" width="124" height="23" /></a>
+        <p>Tecnología cercana.<br />Personas que se implican.</p>
+        <a class="text-link" href={`mailto:${negocio.email}`}>{negocio.email} <span aria-hidden="true">↗</span></a>
+      </div>
+      <nav aria-labelledby="pie-servicios">
+        <h2 id="pie-servicios">Cómo os ayudamos</h2>
+        {servicios.map(({ nombre, url }) => <a href={url}>{nombre}</a>)}
+      </nav>
+      <nav aria-labelledby="pie-software">
+        <h2 id="pie-software">Software propio</h2>
+        {productos.map(({ nombre, url }) => <a href={url}>{nombre}</a>)}
+      </nav>
+      <nav aria-labelledby="pie-confianza">
+        <h2 id="pie-confianza">Hablemos con confianza</h2>
+        <a href="#equipo">Nuestro equipo</a>
+        <a href="#clientes">Empresas con las que trabajamos</a>
+        <a href="#proyectos">Proyectos y colaboraciones</a>
+        <a href="#contacto">Contadnos vuestro caso</a>
+      </nav>
+    </div>
     <div class="wrap footer-inner">
-      <a href="#inicio" class="brand"><img src={negocio.logo} alt="Tisnova" width="104" height="20" /></a>
-      <p>© {new Date().getFullYear()} {negocio.nombre}</p>
-      <div><a href={negocio.privacidad}>Privacidad</a><a href={negocio.legal}>Aviso legal</a><a href="https://tisnova.es/politica-de-cookies">Cookies</a><button type="button" data-motion-toggle aria-pressed="false">Pausar animaciones</button></div>
+      <p>© {new Date().getFullYear()} {negocio.nombre} · Murcia</p>
+      <div><a href={negocio.privacidad}>Privacidad</a><a href={negocio.legal}>Aviso legal</a><a href={negocio.cookies}>Cookies</a><button type="button" data-motion-toggle aria-pressed="false">Pausar animaciones</button></div>
     </div>
   </footer>
 </Layout>
@@ -136,45 +196,94 @@ import { negocio, servicios, proyectos, equipo, navegacion, productos } from '..
 
   .section .chapter { width: min(100% - 2 * var(--gutter),1200px); }
   .section h2 { font-size: clamp(48px,6vw,88px); letter-spacing: -.045em; }
+
+  .clientes { background: #f9f8f1; }
+  .clientes-lista { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 12px; margin-top: 52px; list-style: none; padding: 0; }
+  .clientes-lista li { display: grid; place-items: center; height: 116px; padding: 18px 22px; border: 1px solid #e1e6d8; border-radius: 10px; background: #fff; }
+  .clientes-lista img { width: auto; height: auto; max-width: 100%; max-height: 44px; object-fit: contain; }
+  .clientes-lista [data-forma="escudo"] img { max-height: 72px; }
+  .clientes-lista [data-forma="ancho"] img { max-height: 30px; }
+  .clientes-acuerdo { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px 24px; margin-top: 28px; padding-top: 26px; border-top: 1px solid #dfe3d4; }
+  .clientes-acuerdo img { width: 104px; height: auto; }
+  .clientes-acuerdo p { color: var(--muted); font-size: .95rem; }
+  @media (prefers-reduced-motion: no-preference) and (hover: hover) {
+    .clientes-lista li { transition: border-color .2s, transform .2s; }
+    .clientes-lista li:hover { border-color: #acc2a9; transform: translateY(-2px); }
+  }
+
   .projects { background: #eceee3; }
-  .projects .project-list { max-width: none; gap: 42px; text-align: left; margin-top: 56px; }
-  .projects .project-link { background: transparent; padding: 28px 0; }
+  .projects .project-list { max-width: none; gap: 0 42px; text-align: left; margin-top: 56px; }
+  .projects .project-link { display: flex; flex-direction: column; background: transparent; padding: 28px 0 32px; }
   .projects .project-link h3 { font-size: clamp(24px,2.5vw,36px); line-height: 1.15; margin-block: 14px; }
+  .projects .project-link p:not(.eyebrow) { max-width: 58ch; font-size: .98rem; line-height: 1.55; }
+  .project-logo { align-self: flex-start; width: auto; height: 34px; margin-top: 22px; mix-blend-mode: multiply; }
+
+  .servicios-empresa { background: #f0f5ec; }
+  .servicios-lista { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 42px; margin-top: 52px; padding: 0; list-style: none; text-align: left; }
+  .servicios-lista > li > a { display: block; height: 100%; padding: 26px 0 30px; border-top: 1px solid #bbcfb9; }
+  .servicio-numero { color: var(--color-accent); font-size: .72rem; font-weight: 680; letter-spacing: .135em; }
+  .servicios-lista h3 { margin-top: 10px; color: var(--color-ink); font-size: clamp(22px,2.1vw,30px); font-weight: 625; letter-spacing: -.035em; line-height: 1.15; }
+  .servicios-lista a:hover h3 { color: var(--color-accent); }
+  .servicios-lista h3 span { margin-left: 5px; color: var(--color-accent); font-size: .68em; }
+  .servicios-lista p { max-width: 58ch; margin-top: 10px; color: var(--muted); font-size: .98rem; line-height: 1.55; }
+  .servicios-lista ul { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; padding: 0; list-style: none; }
+  .servicios-lista ul li { padding: 5px 10px; border: 1px solid #c5d6c2; border-radius: 999px; color: #31523a; font-size: .78rem; font-weight: 600; }
+
   .team { background: #f9f8f1; }
-  .team-grid { max-width: none; gap: 24px; margin-top: 52px; }
+  .team-grid { max-width: none; gap: 24px; margin-top: 52px; text-align: left; }
   .team-grid img { aspect-ratio: 4/5; object-fit: cover; border-radius: 3px; }
-  .team-grid figcaption { text-align: left; font-size: 16px; margin-top: 16px; }
+  .team-grid figcaption { display: grid; justify-items: start; gap: 6px; margin-top: 16px; }
+  .team-grid strong { color: var(--color-ink); font-size: 1.05rem; font-weight: 650; letter-spacing: -.02em; }
+  .team-cargo { color: var(--color-accent); font-size: .8rem; font-weight: 650; line-height: 1.35; }
+  .team-bio { color: var(--muted); font-size: .88rem; line-height: 1.5; }
+  .team-grid .text-link { margin-top: 4px; font-size: .8rem; }
+  .forma-trabajar { margin-top: 72px; padding-top: 44px; border-top: 1px solid #dfe3d4; text-align: left; }
+  .forma-trabajar h3 { max-width: 22ch; font-size: clamp(28px,3.2vw,46px); font-weight: 535; letter-spacing: -.045em; line-height: 1.05; }
+  .forma-trabajar h3 em { color: var(--color-accent); font-family: var(--font-editorial); font-weight: 400; letter-spacing: -.02em; }
+  .forma-trabajar ol { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 28px 32px; margin-top: 36px; padding: 0; list-style: none; }
+  .forma-trabajar li span { color: var(--color-accent); font-size: .72rem; font-weight: 680; letter-spacing: .135em; }
+  .forma-trabajar li strong { display: block; margin-top: 8px; font-size: 1.1rem; font-weight: 650; letter-spacing: -.02em; }
+  .forma-trabajar li p { margin-top: 8px; color: var(--muted); font-size: .93rem; line-height: 1.55; }
+
   .contact { background: #223a2d; color: #f0f2df; }
   .contact h2 em { color: #d9e3b7; }
   .contact .eyebrow, .contact .section-intro { color: #c4d0bc; }
   .contact .button { color: #203726; background: #e0e9bf; padding-inline: 24px; }
+  .contact .button:hover { background: #eef4d6; }
   .contact address a { background: transparent; color: #dfe9cf; }
-  @media(max-width:720px) {
-    .projects .project-list { grid-template-columns: 1fr; gap: 10px; }
-    .team-grid { gap: 24px 14px; }
-  }
-  .proyecto-caso { margin-top: 22px; }
-  .servicios-empresa { background: #f0f5ec; }
-  .servicios-lista {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 24px;
-    max-width: 740px;
-    margin: 32px auto 0;
-    text-align: left;
-  }
-  .servicios-lista a {
-    display: block;
-    height: 100%;
-    padding: 17px 4px 20px;
-    border-top: 1px solid #bbcfb9;
-  }
-  .servicios-lista h3 { color: var(--color-ink); font-size: 1.08rem; font-weight: 680; }
-  .servicios-lista a:hover h3 { color: var(--color-accent); }
-  .servicios-lista h3 span { margin-left: 4px; color: var(--color-accent); font-size: .75em; }
-  .servicios-lista p { margin-top: 5px; color: var(--muted); font-size: .9rem; line-height: 1.5; }
+  .contact address span { color: inherit; }
 
-  @media (max-width: 540px) {
-    .servicios-lista { grid-template-columns: 1fr; margin-top: 24px; }
+  .footer-top { display: grid; grid-template-columns: 1.4fr repeat(3,1fr); gap: 36px 32px; padding-block: 56px 40px; }
+  .footer-marca p { margin-block: 18px 14px; color: var(--color-ink); font-size: 1.15rem; line-height: 1.3; letter-spacing: -.02em; }
+  .footer-top nav { display: grid; align-content: start; gap: 10px; font-size: .88rem; }
+  .footer-top nav h2 { margin-bottom: 6px; color: var(--color-ink); font-size: .88rem; font-weight: 680; letter-spacing: 0; line-height: 1.4; }
+  .footer-top nav a { width: fit-content; color: var(--muted); }
+  .footer-top nav a:hover { color: var(--color-accent); text-decoration: underline; text-underline-offset: 4px; }
+  .site-footer .footer-inner { border-top: 1px solid var(--rule); }
+
+  @media(max-width:920px) {
+    .clientes-lista { grid-template-columns: repeat(3,minmax(0,1fr)); }
+    .team-grid { grid-template-columns: repeat(2,1fr); max-width: 640px; gap: 36px 24px; }
+    .footer-top { grid-template-columns: repeat(2,1fr); }
+  }
+  @media(max-width:720px) {
+    .clientes-lista { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin-top: 36px; }
+    .clientes-lista li { height: 92px; padding: 14px 16px; }
+    .clientes-lista img { max-height: 36px; }
+    .clientes-lista [data-forma="escudo"] img { max-height: 58px; }
+    .clientes-lista [data-forma="ancho"] img { max-height: 24px; }
+    .projects .project-list, .servicios-lista { grid-template-columns: 1fr; gap: 0; margin-top: 36px; }
+    .team-grid { gap: 32px 14px; margin-top: 36px; }
+    .forma-trabajar { margin-top: 52px; padding-top: 32px; }
+    .forma-trabajar ol { grid-template-columns: 1fr; }
+    .footer-top { padding-block: 40px 28px; }
+  }
+  @media(max-width:540px) {
+    .team-grid { grid-template-columns: 1fr; gap: 0; }
+    .team-grid figure { display: grid; grid-template-columns: 104px minmax(0,1fr); align-items: start; gap: 16px; padding-block: 20px; border-top: 1px solid #dfe3d4; }
+    .team-grid figcaption { margin-top: 0; }
+  }
+  @media(max-width:480px) {
+    .footer-top { grid-template-columns: 1fr; }
   }
 </style>

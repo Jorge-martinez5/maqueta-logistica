@@ -10,7 +10,7 @@
       </div>
     </div>
     <figure class="consultoria-visual">
-
+      <img class="consultoria-foto" src="/maqueta/consultoria.webp" width="1200" height="686" alt="" />
       <figcaption>La pantalla de la oficina muestra cómo TisTms, TisSGA, TisTransit y TisTime se conectan con el ERP, como Business Central, Sage o SAP.</figcaption>
     </figure>
   </div>
@@ -26,6 +26,15 @@
 
   .consultoria::before { display: none; }
   :global(.maqueta-lista) .consultoria { background: transparent; }
+
+  /* La ilustración sustituye a la escena 3D cuando esta no puede cargarse. */
+  .consultoria-foto { width: 100%; height: auto; mix-blend-mode: multiply; }
+  /* Espera a que la escena 3D haya tenido ocasión de cargarse, para no mostrar una imagen que se va a retirar. */
+  @media (prefers-reduced-motion: no-preference) {
+    .consultoria-foto { animation: aparecer-foto .5s 1.6s both; }
+  }
+  @keyframes aparecer-foto { from { opacity: 0; } }
+  :global(.maqueta-lista) .consultoria-foto { display: none; }
 
   /* El texto describe la pantalla de la oficina, que solo existe en la escena 3D. */
   figcaption { display: none; }
@@ -89,6 +98,8 @@
 
   @media (max-width: 720px) {
     .consultoria { background: radial-gradient(ellipse at 50% 23%, #e4eddf, transparent 56%), #f3f6ee; }
+    /* Con la escena 3D, el texto baja para dejar la tele a la vista en la parte superior. */
+    :global(.maqueta-lista) .consultoria { align-items: end; }
     .consultoria-interior {
       grid-template-columns: minmax(0, 1fr);
       justify-items: center;
