@@ -1,35 +1,173 @@
-<section class="portada" id="portada" aria-labelledby="portada-titulo">
-  <picture class="portada-imagen">
-    <source media="(max-width: 720px)" srcset="/visual/logistica-small.webp" />
-    <img src="/visual/logistica.webp" width="1672" height="941" alt="Camión de Tisnova frente a los muelles de un almacén al atardecer" fetchpriority="high" />
-  </picture>
-  <div class="portada-sombra"></div>
-  <div class="portada-contenido">
-    <h1 id="portada-titulo" data-enter>Todo empieza<br />por <em>conectar.</em></h1>
-    <p data-enter>Software, sistemas y personas.<br />La tecnología que mueve vuestra empresa.</p>
-    <a href="#terminal" class="portada-boton" data-enter>Explorar nuestro software <span aria-hidden="true">↗</span></a>
+---
+import piezas from '../data/piezas-portada.json';
+---
+<section class="portada" id="inicio" aria-labelledby="portada-titulo">
+  <div class="wrap portada-interior">
+    <figure class="portada-marca" data-marca-portada>
+      <img src="/visual/tisnova-blender.webp" width="1600" height="600" alt="Tisnova en vidrio verde, con la T dividida en tres piezas" fetchpriority="high" />
+      <div class="portada-piezas" aria-hidden="true">
+        {piezas.map(({ x, y, width, height }, indice) => (
+          <img data-pieza data-src={`/visual/tisnova-piezas/${indice}.webp`} alt=""
+            width={width} height={height}
+            style={`left:${x / 16}%;top:${y / 6}%;width:${width / 16}%`} />
+        ))}
+      </div>
+    </figure>
+    <div class="portada-texto">
+      <h1 id="portada-titulo" data-enter>Tecnología que{' '}<br /><em>conecta.</em></h1>
+      <p data-enter>Desarrollamos software, conectamos vuestras aplicaciones y cuidamos los sistemas con los que trabajáis cada día.</p>
+      <div class="portada-acciones" data-enter>
+        <a href="#terminal" class="button">Explorar la maqueta <span aria-hidden="true">↓</span></a>
+        <a href="#servicios" class="portada-servicios">Ver servicios <span aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+    <nav class="portada-ruta" aria-label="Conocer Tisnova">
+      <a href="#consultoria">Consultoría tecnológica <span aria-hidden="true">↗</span></a>
+      <a href="#productos">Software propio <span aria-hidden="true">↗</span></a>
+      <a href="#proyectos">Proyectos <span aria-hidden="true">↗</span></a>
+    </nav>
   </div>
-  <div class="portada-pie"><span>Consultoría tecnológica · Software propio</span><a href="#inicio">Conoced Tisnova <span aria-hidden="true">↓</span></a></div>
 </section>
+
 <style>
-.portada { position: relative; min-height: calc(100svh - var(--sticky-top)); display: flex; align-items: flex-start; overflow: hidden; background: #26362e; color: #fff9ea; }
-.portada-imagen,.portada-sombra { position: absolute; inset: 0; }
-.portada-imagen img { width: 100%; height: 100%; object-fit: cover; object-position: 62% 50%; }
-.portada-sombra { background: linear-gradient(90deg,#0e241ded 0%,#14251c8c 35%,transparent 69%),linear-gradient(0deg,#13241bba,transparent 25%); }
-.portada-contenido { position: relative; padding: clamp(48px,9vh,110px) var(--gutter) 120px; }
-h1 { font-size: clamp(64px,7.8vw,122px); line-height: .96; letter-spacing: -.055em; font-weight: 530; }
-h1 em { color: #e3e9b1; font-family: var(--font-editorial); font-weight: 400; }
-p { font-size: clamp(16px,1.3vw,20px); line-height: 1.55; margin-top: 28px; color: #e7e9de; }
-.portada-boton { display: inline-flex; gap: 28px; align-items: center; margin-top: 30px; padding: 16px 21px; border-radius: 5px; color: #213529; background: #e7ecc4; font-size: 14px; font-weight: 650; transition: transform .2s,background .2s; }
-.portada-boton:hover { transform: translateY(-2px); background: #f3f6dd; }
-.portada-pie { position: absolute; bottom: 27px; left: var(--gutter); right: var(--gutter); display: flex; justify-content: space-between; gap: 20px; padding-top: 18px; border-top: 1px solid #ffffff40; font-size: 12px; }
-.portada-pie a { color: #fff9ea; }
-@media(max-width:720px) {
-.portada { min-height: max(700px,calc(100svh - var(--sticky-top))); }
-.portada-contenido { padding-top: 38px; }
-h1 { font-size: clamp(58px,12.5vw,86px); }
-.portada-imagen img { object-position: 71% 50%; }
-.portada-sombra { background: linear-gradient(180deg,#14291ef2 0%,#14291ea6 37%,transparent 65%,#14291ece 100%); }
-.portada-pie { font-size: 10px; }
-}
+  .portada {
+    position: relative;
+    isolation: isolate;
+    overflow: clip;
+    color: #fdfbf2;
+    background: #091810;
+  }
+  .portada-interior {
+    width: min(100% - 2 * var(--gutter), var(--ancho-editorial));
+    min-height: calc(100svh - var(--sticky-top));
+    display: grid;
+    grid-template-columns: minmax(0, 1.18fr) minmax(0, .82fr);
+    grid-template-rows: 1fr auto;
+    column-gap: clamp(20px, 3vw, 50px);
+    align-items: center;
+  }
+  .portada-texto { grid-area: 1 / 2; padding-block: clamp(52px, 8vh, 100px); }
+  h1 { font-size: clamp(40px, 4.9vw, 83px); letter-spacing: -.058em; line-height: .91; font-weight: 630; text-wrap: initial; }
+  h1 em { color: #e6f5a8; font-size: 1.08em; }
+  .portada-texto p { max-width: 34ch; margin-top: 30px; color: #ecefe3; font-size: clamp(17px, 1.45vw, 21px); line-height: 1.5; }
+  .portada-acciones { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 24px; margin-top: 28px; }
+  .portada-acciones .button { background: #e6f5a8; color: #18271e; }
+  .portada-acciones .button:hover { background: #f0facb; }
+  .portada-servicios { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 650; font-size: .9rem; }
+  .portada-servicios:hover { text-decoration: underline; text-underline-offset: 5px; }
+  .portada-ruta { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding-bottom: 24px; }
+  .portada-ruta a {
+    display: flex;
+    align-items: center;
+    gap: clamp(8px, 1.25vw, 20px);
+    padding: 17px 8px 6px 0;
+    border-top: 1px solid #e8f6d777;
+    font-size: clamp(.75rem, 1.25vw, 1rem);
+    font-weight: 590;
+  }
+  .portada-ruta a:hover { border-color: #e6f5a8; color: #e6f5a8; }
+  .portada-ruta span { color: #e6f5a8; font-size: .76em; font-variant-numeric: tabular-nums; }
+  .portada a:focus-visible { outline-color: #e6f5a8; }
+  .portada-marca { grid-area: 1 / 1; position: relative; width: 100%; }
+  .portada-marca { aspect-ratio: 8 / 3; }
+  .portada-marca > img {
+    display: block; width: 100%; height: auto;
+    mask-image: linear-gradient(90deg, transparent, black 6% 94%, transparent),
+      linear-gradient(180deg, transparent, black 14% 76%, transparent);
+    mask-composite: intersect;
+  }
+  .portada-piezas {
+    display: none; position: absolute; inset: 0;
+    background: radial-gradient(ellipse closest-side at 52% 68%, #2c5239, transparent);
+  }
+  .portada-marca[data-interactiva] > img { opacity: 0; }
+  .portada-marca[data-interactiva] .portada-piezas { display: block; }
+  .portada-piezas img {
+    position: absolute; height: auto; pointer-events: none;
+    filter: drop-shadow(0 12px 8px #020b05a0);
+    transition: transform .42s cubic-bezier(.2,.75,.25,1);
+  }
+  @media (max-width: 900px) {
+    .portada-interior { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr auto; }
+    .portada-marca { grid-area: 1 / 1; align-self: end; margin-top: clamp(22px, 5svh, 60px); }
+    .portada-texto { grid-area: 2 / 1; align-self: start; padding-block: clamp(45px, 8svh, 76px) 32px; }
+    h1 { font-size: clamp(42px, 11.4vw, 78px); }
+    .portada-texto p { margin-top: 22px; }
+    .portada-acciones { margin-top: 20px; }
+    .portada-ruta { padding-bottom: 16px; }
+    .portada-ruta a { flex-direction: column; align-items: flex-start; gap: 4px; padding-top: 9px; padding-right: 12px; line-height: 1.25; }
+  }
 </style>
+
+<script>
+  const marca = document.querySelector<HTMLElement>('[data-marca-portada]');
+  const piezas = Array.from(marca?.querySelectorAll<HTMLImageElement>('[data-pieza]') ?? []);
+  const movimiento = matchMedia('(prefers-reduced-motion: no-preference)');
+
+  if (marca) {
+    let cargaIniciada = false;
+    let listas = false;
+    let frame = 0;
+    let puntero: PointerEvent | undefined;
+
+    const permitido = () => movimiento.matches && !document.documentElement.hasAttribute('data-movimiento-pausado');
+    const devolverPiezas = () => {
+      puntero = undefined;
+      cancelAnimationFrame(frame);
+      frame = 0;
+      piezas.forEach((pieza) => pieza.style.removeProperty('transform'));
+    };
+
+    const mover = () => {
+      frame = 0;
+      if (!puntero || !permitido()) return;
+      const rect = marca.getBoundingClientRect();
+      const x = (puntero.clientX - rect.left) / rect.width;
+      const y = (puntero.clientY - rect.top) / rect.height;
+      piezas.forEach((pieza) => {
+        const ancho = Number.parseFloat(pieza.style.width) / 100;
+        const centroX = Number.parseFloat(pieza.style.left) / 100 + ancho / 2;
+        const centroY = Number.parseFloat(pieza.style.top) / 100
+          + ancho * Number(pieza.getAttribute('height')) / Number(pieza.getAttribute('width')) * rect.width / rect.height / 2;
+        const dx = centroX - x;
+        const dy = (centroY - y) * rect.height / rect.width;
+        const fuerza = Math.max(0, 1 - Math.hypot(dx, dy) / .14) ** 2;
+        const lado = Math.max(-1, Math.min(1, dx * 35 + .35));
+        pieza.style.transform = fuerza
+          ? `translate(${lado * fuerza * 22}px,${fuerza * 28}px) rotate(${lado * fuerza * 32}deg)`
+          : '';
+      });
+    };
+
+    const activar = () => {
+      marca.setAttribute('data-interactiva', '');
+      if (!frame) frame = requestAnimationFrame(mover);
+    };
+
+    marca.addEventListener('pointermove', (evento) => {
+      if (evento.pointerType !== 'mouse' || !permitido()) return;
+      puntero = evento;
+      if (!cargaIniciada) {
+        cargaIniciada = true;
+        void Promise.all(piezas.map((pieza) => {
+          pieza.src = pieza.dataset.src!;
+          return pieza.decode();
+        })).then(() => {
+          listas = true;
+          if (puntero && permitido()) activar();
+        }).catch(() => { /* La imagen estática sigue visible. */ });
+      }
+      if (listas) activar();
+    }, { passive: true });
+    marca.addEventListener('pointerleave', devolverPiezas);
+    const actualizar = () => {
+      if (permitido()) return;
+      devolverPiezas();
+      marca.removeAttribute('data-interactiva');
+    };
+    movimiento.addEventListener('change', actualizar);
+    new MutationObserver(actualizar).observe(document.documentElement, {
+      attributeFilter: ['data-movimiento-pausado'],
+    });
+  }
+</script>

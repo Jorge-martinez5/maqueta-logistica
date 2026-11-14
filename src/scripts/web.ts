@@ -107,6 +107,7 @@ const controlMovimiento = document.querySelector<HTMLButtonElement>('[data-motio
 let animacionesPausadas = false;
 controlMovimiento?.addEventListener('click', () => {
   animacionesPausadas = !animacionesPausadas;
+  document.documentElement.toggleAttribute('data-movimiento-pausado', animacionesPausadas);
   controlMovimiento.setAttribute('aria-pressed', String(animacionesPausadas));
   controlMovimiento.textContent = animacionesPausadas ? 'Activar animaciones' : 'Pausar animaciones';
   gsap.matchMediaRefresh();
@@ -119,6 +120,11 @@ motion.add({
 }, ({ conditions }) => {
   if (animacionesPausadas || !conditions?.normal || !maqueta || !canvas || escenas.length < 2) return;
   const tipo = maqueta.dataset.maqueta;
+  const dispositivo = navigator as Navigator & {
+    connection?: { saveData?: boolean };
+    deviceMemory?: number;
+  };
+  if (dispositivo.connection?.saveData || (dispositivo.deviceMemory ?? Infinity) <= 2) return;
 
   let motor: ReturnType<typeof prepararMaqueta> = null;
   let trigger: ScrollTrigger | undefined;
@@ -191,7 +197,7 @@ motion.add({
     const hash = inicioVisita ? `#${inicioVisita.id}` : enlace.hash;
     const destino = document.getElementById(hash.slice(1));
     const esParadaTransit = tipo === 'transit' && escenas.some(({ id }) => id && hash === `#${id}`);
-    if (destino && (hash === '#terminal' || hash === '#tistms' || hash === '#aplicaciones' || esParadaTransit || visitaDe(destino))) {
+    if (destino && (hash === '#terminal' || hash === '#tistms' || hash === '#tistransit' || hash === '#tissga' || hash === '#aplicaciones' || esParadaTransit || visitaDe(destino))) {
       evento.preventDefault();
       if (nuevaVisita && nuevaVisita !== visitaActiva) {
         actualizarVisita(nuevaVisita);
@@ -266,12 +272,25 @@ motion.add({
     enlaces.forEach((enlace) => enlace.removeAttribute('aria-current'));
   }
 
-  import('./maqueta/camara').then(({ prepararMaqueta }) => {
+  let carga: IntersectionObserver | undefined;
+  const enlacesMapa = maqueta.querySelector('.mapa-enlaces');
+  const iniciar = () => import('./maqueta/camara').then(({ prepararMaqueta }) => {
     if (!activo) return;
+    if (enlacesMapa?.contains(document.activeElement)) {
+      enlacesMapa.addEventListener('focusout', alSalirDelMapa);
+      return;
+    }
     motor = prepararMaqueta(canvas, limpiar, tipo === 'interior' || tipo === 'transit' ? tipo : 'terminal');
     if (!motor) return;
 
+    const destinoActual = document.getElementById(location.hash.slice(1));
+    const paradaActual = visitaDe(destinoActual) ? destinoActual : null;
+    const posicionParada = paradaActual?.getBoundingClientRect();
     maqueta.classList.add('maqueta-lista');
+    if (paradaActual && posicionParada && posicionParada.top < innerHeight && posicionParada.bottom > 0) {
+      const diferencia = paradaActual.getBoundingClientRect().top - posicionParada.top;
+      if (diferencia) window.scrollBy({ top: diferencia, behavior: 'instant' });
+    }
     if (conditions.escritorio) {
       lenis = new Lenis({ autoRaf: false, lerp: 0.11 });
       lenis.on('scroll', ScrollTrigger.update);
@@ -304,8 +323,24 @@ motion.add({
     console.warn('Tisnova muestra las vistas estáticas de la maqueta.', error);
   });
 
+  function alSalirDelMapa() {
+    queueMicrotask(() => {
+      if (!activo || enlacesMapa?.contains(document.activeElement)) return;
+      enlacesMapa?.removeEventListener('focusout', alSalirDelMapa);
+      void iniciar();
+    });
+  }
+  carga = new IntersectionObserver(([entrada]) => {
+    if (entrada.intersectionRatio < 0.001) return;
+    carga?.disconnect();
+    void iniciar();
+  }, { threshold: 0.001 });
+  carga.observe(maqueta);
+
   return () => {
     activo = false;
+    carga?.disconnect();
+    enlacesMapa?.removeEventListener('focusout', alSalirDelMapa);
     limpiar();
   };
 });

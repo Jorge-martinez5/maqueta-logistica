@@ -47,7 +47,7 @@ const paradas = [
       </div>
     </div>
     {paradas.map(({ id, titulo, texto, foto, producto, recorrido }) => (
-      <article class="maqueta-tramo" id={id} data-escena={id} aria-labelledby={`titulo-${id}`} tabindex={id === 'tistms' ? '-1' : undefined}>
+      <article class="maqueta-tramo" id={id} data-escena={id} aria-labelledby={`titulo-${id}`} tabindex="-1">
         <img class="maqueta-foto" src={foto} width="1440" height="823" alt="" loading="lazy" />
         <div class="maqueta-copy">
           <p class="maqueta-producto">
@@ -76,6 +76,7 @@ const paradas = [
 </Escenario>
 
 <style>
-  .almacen-acciones { display: grid; justify-items: center; }
+  .almacen-acciones { display: grid; justify-items: start; }
+  @media (max-width: 720px) { .almacen-acciones { justify-items: center; } }
   .almacen-acciones .text-link { margin-top: 12px; }
 </style>

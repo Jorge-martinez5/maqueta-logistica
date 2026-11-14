@@ -1,0 +1,166 @@
+---
+import { miniaturas, productos } from '../data/negocio';
+import { recorridos } from '../data/recorridos';
+
+const orden = [recorridos.tms, recorridos.transit, recorridos.interior, recorridos.time, recorridos.rural, recorridos.game];
+const fichas = orden.map((recorrido) => ({
+  recorrido,
+  producto: productos.find(({ id }) => id === recorrido.producto.id)!,
+}));
+---
+<section class="catalogo" id="productos" aria-labelledby="productos-titulo" data-catalogo>
+  <div class="wrap catalogo-interior">
+    <header class="catalogo-cabecera">
+      <h2 id="productos-titulo" data-reveal>Software para<br /> <em>vuestro trabajo.</em></h2>
+      <p>De organizar una carga a gestionar una jornada. Elegid una aplicación y recorred un caso de uso.</p>
+    </header>
+    <div class="catalogo-explorador">
+      <div class="catalogo-selector" data-selector aria-label="Elegir aplicación" hidden>
+        {fichas.map(({ producto }, indice) => (
+          <button type="button" id={`selector-${producto.id}`} data-ficha={indice} aria-controls={`ficha-${producto.id}`}>
+            <img src={`/productos/${producto.id}.svg`} width="24" height="24" alt="" loading="lazy" />
+            <span><strong>{producto.nombre}</strong><small>{producto.sector}</small></span>
+            <span class="selector-flecha" aria-hidden="true">↗</span>
+          </button>
+        ))}
+      </div>
+      <div class="catalogo-fichas">
+        {fichas.map(({ producto, recorrido }, indice) => {
+          const dimensiones = miniaturas[producto.miniatura];
+          return <article class="catalogo-ficha" id={`ficha-${producto.id}`} data-panel={indice} tabindex="-1">
+            <div class="ficha-visual" aria-hidden="true">
+              <div class="ficha-lamina">
+                <span>{producto.nombre}</span>
+                <img src={`/ruta/${producto.miniatura}.webp`} width={dimensiones.width} height={dimensiones.height} alt="" loading="lazy" />
+              </div>
+            </div>
+            <div class="ficha-texto">
+              <h3>{producto.nombre}</h3>
+              <p>{producto.descripcion}</p>
+              <div class="ficha-acciones">
+                <a class="button" href={recorrido.tipo === 'interior' ? '/sga/' : recorrido.tipo === 'transit' ? '/tistransit/' : '#aplicaciones'} data-visita-destino={recorrido.tipo}>Ver recorrido <span aria-hidden="true">↘</span></a>
+                <a class="text-link" href={producto.url}>Ver funciones <span aria-hidden="true">↗</span></a>
+              </div>
+            </div>
+          </article>;
+        })}
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const catalogo = document.querySelector('[data-catalogo]');
+  const selector = catalogo?.querySelector<HTMLElement>('[data-selector]');
+  const botones = Array.from(selector?.querySelectorAll<HTMLButtonElement>('[data-ficha]') ?? []);
+  const fichas = Array.from(catalogo?.querySelectorAll<HTMLElement>('[data-panel]') ?? []);
+
+  if (selector && botones.length && botones.length === fichas.length) {
+    selector.setAttribute('role', 'tablist');
+    fichas.forEach((ficha, indice) => {
+      ficha.setAttribute('role', 'tabpanel');
+      ficha.setAttribute('aria-labelledby', botones[indice].id);
+      ficha.tabIndex = 0;
+    });
+
+    const seleccionar = (indice: number) => {
+      botones.forEach((boton, posicion) => {
+        const activa = indice === posicion;
+        boton.setAttribute('aria-selected', String(activa));
+        boton.tabIndex = activa ? 0 : -1;
+        fichas[posicion].hidden = !activa;
+      });
+    };
+
+    const estrecho = matchMedia('(max-width: 760px)');
+    const actualizarOrientacion = () => selector.setAttribute('aria-orientation', estrecho.matches ? 'horizontal' : 'vertical');
+    estrecho.addEventListener('change', actualizarOrientacion);
+    actualizarOrientacion();
+
+    botones.forEach((boton, indice) => {
+      boton.setAttribute('role', 'tab');
+      boton.addEventListener('click', () => seleccionar(indice));
+      boton.addEventListener('keydown', (evento) => {
+        const siguiente = estrecho.matches ? 'ArrowRight' : 'ArrowDown';
+        const anterior = estrecho.matches ? 'ArrowLeft' : 'ArrowUp';
+        const destinos: Record<string, number> = {
+          [siguiente]: (indice + 1) % botones.length,
+          [anterior]: (indice - 1 + botones.length) % botones.length,
+          Home: 0,
+          End: botones.length - 1,
+        };
+        if (!Object.hasOwn(destinos, evento.key)) return;
+        evento.preventDefault();
+        const destino = destinos[evento.key];
+        seleccionar(destino);
+        botones[destino].focus();
+      });
+    });
+    seleccionar(0);
+    selector.hidden = false;
+  }
+</script>
+
+<style>
+  .catalogo { color: #f6f8e9; background: #1b2d23; padding-block: clamp(74px, 10vw, 145px); }
+  .catalogo-interior { width: min(100% - 2 * var(--gutter), var(--ancho-editorial)); }
+  .catalogo-cabecera { display: grid; grid-template-columns: 1fr minmax(220px, 29%); align-items: end; gap: 20px; margin-bottom: clamp(30px, 5vw, 58px); }
+  .catalogo-cabecera h2 { font-size: clamp(48px, 7.5vw, 116px); text-wrap: initial; }
+  .catalogo-cabecera em { color: #e6f5a8; }
+  .catalogo-cabecera p { max-width: 28ch; color: #c9d4c3; font-size: clamp(16px, 1.35vw, 20px); line-height: 1.55; }
+  .catalogo-explorador { display: grid; grid-template-columns: minmax(0, 1fr); gap: clamp(24px, 4vw, 64px); }
+  .catalogo-explorador:has([role="tablist"]) { grid-template-columns: minmax(225px, 30%) minmax(0, 1fr); }
+  .catalogo-selector { display: grid; align-content: start; border-bottom: 1px solid #58715d; }
+  [hidden] { display: none; }
+  .catalogo-selector button {
+    display: grid; grid-template-columns: 25px 1fr auto; gap: 13px; align-items: center;
+    border-top: 1px solid #58715d; padding: 14px 12px; text-align: left; min-height: 69px; cursor: pointer;
+  }
+  .catalogo-selector button:hover { background: #2b4132; }
+  .catalogo-selector [aria-selected="true"] { background: #e6f5a8; color: #18271e; }
+  .catalogo-selector [aria-selected="true"]:hover { background: #eff9ca; }
+  .catalogo-selector strong { display: block; font-size: 1.02rem; }
+  .catalogo-selector small { display: block; margin-top: 2px; font-size: .77rem; }
+  .selector-flecha { font-size: 1rem; }
+  .catalogo-fichas { min-width: 0; }
+  .catalogo-ficha:not(:last-child):not([role]) { margin-bottom: 40px; }
+  .ficha-visual {
+    display: grid; place-items: center; perspective: 900px; overflow: hidden;
+    min-height: clamp(260px, 31vw, 420px); background: radial-gradient(ellipse at 52% 67%, #dbe7bb, #bbcba7);
+  }
+  .ficha-lamina {
+    position: relative; display: grid; place-items: center; width: min(67%, 480px); height: 78%;
+    min-height: 200px; border: 1px solid #45604466; transform-style: preserve-3d;
+    background: linear-gradient(140deg, #edf1d6cc, #c9d8b7a8);
+    box-shadow: 12px 17px 0 -4px #abc29d, 12px 17px 0 -3px #759276;
+  }
+  .ficha-lamina span { position: absolute; left: 14px; top: 10px; color: #294533; font-size: .75rem; font-weight: 660; }
+  .ficha-lamina img { width: 95%; height: clamp(165px, 24vw, 310px); object-fit: contain; transform: translateZ(44px); filter: drop-shadow(0 18px 17px #213a2e42); }
+  .ficha-texto { padding-block: 20px; }
+  .ficha-texto h3 { font-size: clamp(28px, 3.2vw, 46px); letter-spacing: -.045em; font-weight: 620; }
+  .ficha-texto p { max-width: 59ch; margin-top: 7px; min-height: 3em; color: #d7e0cf; line-height: 1.5; }
+  .ficha-acciones { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 23px; margin-top: 18px; }
+  .ficha-acciones .button { background: #e6f5a8; color: #18271e; }
+  .ficha-acciones .button:hover { background: #eff9ca; }
+  .ficha-acciones .text-link, .ficha-acciones .text-link span { color: #e6f5a8; }
+  .catalogo :is(a, button, article):focus-visible { outline-color: #e6f5a8; }
+  @media (prefers-reduced-motion: no-preference) {
+    :global(html:not([data-movimiento-pausado])) .catalogo-ficha[role="tabpanel"]:not([hidden]) .ficha-lamina {
+      animation: desplegar-ficha .62s cubic-bezier(.18,.8,.25,1) both;
+    }
+    @keyframes desplegar-ficha {
+      from { transform: translateX(18px) rotateY(-31deg) rotateZ(-4deg); opacity: .45; }
+      to { transform: translateX(0) rotateY(0) rotateZ(0); opacity: 1; }
+    }
+  }
+  @media (max-width: 760px) {
+    .catalogo-cabecera, .catalogo-explorador:has([role="tablist"]) { grid-template-columns: minmax(0, 1fr); }
+    .catalogo-cabecera p { max-width: 39ch; }
+    .catalogo-selector { display: flex; overflow-x: auto; padding: 8px; margin: -8px; border: 0; }
+    .catalogo-selector[hidden] { display: none; }
+    .catalogo-selector button { flex: none; min-height: 56px; border: 1px solid #58715d; border-right-width: 0; }
+    .catalogo-selector button:last-child { border-right-width: 1px; }
+    .catalogo-selector small, .selector-flecha { display: none; }
+    .catalogo-selector button { grid-template-columns: 20px 1fr; gap: 8px; }
+  }
+</style>

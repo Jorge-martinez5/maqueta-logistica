@@ -54,7 +54,7 @@ h1 em, h2 em { color: var(--color-accent); font-family: var(--font-editorial); f
 a:hover > span, a:hover h3 span { transform: translate(2px,-2px); }
 
 /* The canvas stays in place as the chapters scroll past. */
-.maqueta { --escenario: calc(100svh - var(--sticky-top)); --hud-alto: 48px; --hud-abajo: clamp(14px, 3.6vh, 36px); position: relative; isolation: isolate; background: #e7eee2; }
+.maqueta { --escenario: calc(100svh - var(--sticky-top)); --hud-alto: 48px; --hud-abajo: clamp(14px, 3.6vh, 36px); position: relative; isolation: isolate; overflow: clip; background: #e7eee2; }
 .maqueta-stage { visibility: hidden; position: sticky; top: var(--sticky-top); height: var(--escenario); overflow: clip; }
 .maqueta-lista .maqueta-stage { visibility: visible; }
 .maqueta-canvas { display: block; width: 100%; height: 100%; }
@@ -186,4 +186,19 @@ address a:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 @media (max-width: 720px) {
   .sga-regreso { font-size: .73rem; }
+}
+
+:root { --ancho-editorial: 1440px; }
+.header-inner { width: min(100% - 2 * var(--gutter), var(--ancho-editorial)); }
+.site-header { background: #f9f9f2; border-bottom-color: #d9dfd3; }
+.site-nav { color: var(--color-ink); font-weight: 570; }
+.header-cta { border-radius: 5px; min-height: 42px; padding-inline: 14px; }
+.button { border-radius: 5px; min-height: 48px; padding-inline: 20px; }
+.footer-top, .footer-inner { width: min(100% - 2 * var(--gutter), var(--ancho-editorial)); }
+.maqueta-paradas { background: #f9faf1; border-color: #aab8a5; }
+@media (min-width: 721px) {
+  .maqueta-copy { text-align: left; }
+  .maqueta-copy > p:not(.eyebrow,.maqueta-producto) { margin-inline: 0; }
+  .maqueta-producto { justify-content: flex-start; }
+  .maqueta-copy :is(h1, h2) { text-wrap: initial; }
 }

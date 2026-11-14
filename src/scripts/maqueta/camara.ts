@@ -52,7 +52,8 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
   sol.position.set(-34, 49, 35);
   sol.castShadow = true;
   const pantallaEstrecha = canvas.clientWidth < 760;
-  sol.shadow.mapSize.setScalar(pantallaEstrecha ? 1024 : 2048);
+  const calidadLigera = pantallaEstrecha || matchMedia('(pointer: coarse)').matches;
+  sol.shadow.mapSize.setScalar(calidadLigera ? 1024 : 2048);
   sol.shadow.camera.left = -65;
   sol.shadow.camera.right = 65;
   sol.shadow.camera.top = 53;
@@ -123,7 +124,7 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
   // y no incluye el tiempo de espera a que el usuario haga scroll.
   let momentoPedido = 0;
   const tiemposCuadro: number[] = [];
-  if (!pantallaEstrecha && !recorrido) {
+  if (!calidadLigera && !recorrido) {
     import('./oclusion').then(({ crearOclusion }) => {
       if (destruida) return;
       oclusion = crearOclusion(renderer, escena, camera);
@@ -344,12 +345,12 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
   function ajustar() {
     ancho = Math.max(1, canvas.clientWidth);
     alto = Math.max(1, canvas.clientHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, ancho < 760 ? 1.25 : 1.55));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, calidadLigera || ancho < 760 ? 1 : 1.5));
     renderer.setSize(ancho, alto, false);
     oclusion?.ajustar(ancho, alto);
     const textoPortada = plano ? maqueta?.querySelector<HTMLElement>('.consultoria-texto') : null;
-    // El texto se desplaza con la página y el lienzo queda fijo: se mide como si no hubiera scroll.
-    espacioPlano = textoPortada ? textoPortada.getBoundingClientRect().top + window.scrollY - canvas.getBoundingClientRect().top : 0;
+    // Medir dentro del recorrido, independientemente de dónde se haya anclado el lienzo.
+    espacioPlano = textoPortada && maqueta ? textoPortada.getBoundingClientRect().top - maqueta.getBoundingClientRect().top : 0;
     solicitar();
   }
 

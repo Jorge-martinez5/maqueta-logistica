@@ -49,5 +49,6 @@ const foto = (id: string) => `/maqueta/${imagenes}-${id}.webp`;
 <style>
   .tms-animado, :global(.maqueta-lista) .tms-estatico { display: none; }
   :global(.maqueta-lista) .tms-animado { display: inline; }
-  .fin-recorrido { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0 14px; }
+  .fin-recorrido { display: flex; flex-wrap: wrap; align-items: center; gap: 0 14px; }
+  @media (max-width: 720px) { .fin-recorrido { justify-content: center; } }
 </style>

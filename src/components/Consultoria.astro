@@ -1,12 +1,11 @@
-<section class="maqueta-tramo consultoria" id="inicio" data-escena="inicio" aria-labelledby="consultoria-titulo">
+<section class="maqueta-tramo consultoria" id="consultoria" data-escena="inicio" aria-labelledby="consultoria-titulo">
   <div class="wrap consultoria-interior">
     <div class="consultoria-texto">
-      <p class="eyebrow" data-enter>Consultoría tecnológica · Murcia</p>
-      <h1 id="consultoria-titulo" data-enter>Contadnos cómo{' '}<br /><em>trabajáis.</em></h1>
-      <p class="consultoria-descripcion" data-enter>En Tisnova revisamos con vosotros los procesos que os hacen perder tiempo. Cuidamos vuestros sistemas, conectamos las aplicaciones que usáis y desarrollamos software para las tareas que queréis simplificar.</p>
-      <div class="consultoria-acciones" data-enter>
+      <h2 id="consultoria-titulo">Conectad vuestros{' '}<em>sistemas.</em></h2>
+      <p class="consultoria-descripcion">En Tisnova revisamos con vosotros los procesos que os hacen perder tiempo. Cuidamos vuestros sistemas, conectamos las aplicaciones que usáis y desarrollamos software para las tareas que queréis simplificar.</p>
+      <div class="consultoria-acciones">
         <a class="button" href="#terminal">Conocer nuestro software <span aria-hidden="true">↓</span></a>
-        <a class="text-link" href="#servicios">Ver servicios <span aria-hidden="true">↓</span></a>
+        <a class="text-link" href="#servicios">Consultoría y soporte <span aria-hidden="true">↓</span></a>
       </div>
     </div>
     <figure class="consultoria-visual">
@@ -29,11 +28,6 @@
 
   /* La ilustración sustituye a la escena 3D cuando esta no puede cargarse. */
   .consultoria-foto { width: 100%; height: auto; mix-blend-mode: multiply; }
-  /* Espera a que la escena 3D haya tenido ocasión de cargarse, para no mostrar una imagen que se va a retirar. */
-  @media (prefers-reduced-motion: no-preference) {
-    .consultoria-foto { animation: aparecer-foto .5s 1.6s both; }
-  }
-  @keyframes aparecer-foto { from { opacity: 0; } }
   :global(.maqueta-lista) .consultoria-foto { display: none; }
 
   /* El texto describe la pantalla de la oficina, que solo existe en la escena 3D. */
@@ -60,18 +54,17 @@
     position: relative;
     z-index: 1;
     max-width: 540px;
-    text-align: center;
+    text-align: left;
     pointer-events: auto;
   }
 
-  h1 {
+  h2 {
     margin-block: 16px 22px;
     font-size: clamp(50px, 6.25vw, 96px);
   }
 
   .consultoria-descripcion {
     max-width: 42ch;
-    margin-inline: auto;
     color: var(--muted);
     font-size: clamp(16px, 1.26vw, 19px);
     line-height: 1.58;
@@ -82,7 +75,6 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: center;
     gap: 6px 20px;
     margin-top: 24px;
   }
@@ -110,10 +102,12 @@
       grid-row: 1;
       width: min(116%, 490px);
     }
-    h1 {
+    h2 {
       margin-block: 12px 16px;
       font-size: clamp(44px, 10.7vw, 68px);
     }
-    .consultoria-acciones { margin-top: 18px; }
+    .consultoria-texto { text-align: center; }
+    .consultoria-descripcion { margin-inline: auto; }
+    .consultoria-acciones { justify-content: center; margin-top: 18px; }
   }
 </style>
