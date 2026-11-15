@@ -81,19 +81,29 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
   const maqueta = canvas.closest<HTMLElement>('[data-maqueta]');
   const recorrido = tipo === 'interior' ? prepararInterior(mundo)
     : tipo === 'transit' ? prepararTransit(mundo.tractor, personas) : null;
-  const visitaInterior = tipo === 'terminal' ? prepararInterior(mundo, true) : null;
+  // La cabina forma parte del recorrido general; el resto de controladores espera a la visita.
+  let visitaInterior: ReturnType<typeof prepararInterior> | null = null;
   const visitaTransit = tipo === 'terminal' ? prepararTransit(mundo.tractor, personas, true) : null;
-  const visitaTms = mundo.puestoTms ? prepararVisitaMonitor(mundo.puestoTms.pantalla, mundo.puestoTms.monitor) : null;
-  const visitaTime = mundo.puestoTms ? prepararTime(mundo.puestoTms.time) : null;
-  const visitaRural = mundo.puestoRural
-    ? prepararVisitaMonitor(mundo.puestoRural.pantalla, mundo.puestoRural.monitor, true) : null;
+  if (visitaTransit) visitaTransit.control.visible = false;
+  let visitaTms: ReturnType<typeof prepararVisitaMonitor> | null = null;
+  let visitaTime: ReturnType<typeof prepararTime> | null = null;
+  let visitaRural: ReturnType<typeof prepararVisitaMonitor> | null = null;
   const pistaGame = tipo === 'terminal' ? crearPistaGame() : null;
   if (pistaGame) {
     pistaGame.textura.anisotropy = anisotropia;
     escena.add(pistaGame.pista);
   }
   if (mundo.puestoTms) mundo.puestoTms.pantalla.textura.anisotropy = anisotropia;
-  const visitaGame = pistaGame ? prepararGame(pistaGame) : null;
+  let visitaGame: ReturnType<typeof prepararGame> | null = null;
+
+  function prepararVisita(tipoVisita?: TipoVisita) {
+    if (tipo !== 'terminal') return;
+    if (tipoVisita === 'interior') visitaInterior ??= prepararInterior(mundo, true);
+    if (tipoVisita === 'tms' && mundo.puestoTms) visitaTms ??= prepararVisitaMonitor(mundo.puestoTms.pantalla, mundo.puestoTms.monitor);
+    if (tipoVisita === 'time' && mundo.puestoTms) visitaTime ??= prepararTime(mundo.puestoTms.time);
+    if (tipoVisita === 'rural' && mundo.puestoRural) visitaRural ??= prepararVisitaMonitor(mundo.puestoRural.pantalla, mundo.puestoRural.monitor, true);
+    if (tipoVisita === 'game' && pistaGame) visitaGame ??= prepararGame(pistaGame);
+  }
   const { techo, frente, tractor, carretilla, horquillas, ruta, trazar, cerrarOficina, estanterias, cargaRuta, marcasAlmacen, plano } = mundo;
   const mapa = maqueta?.querySelector<HTMLElement>('#aplicaciones');
   const enlacesMapa = mapa?.querySelector<HTMLElement>('.mapa-enlaces');
@@ -274,7 +284,7 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
     frente.visible = abrir < 0.98;
     const entradaVisita = suavizar(0, 1, avanceVisita);
     const tramoVisita = Math.max(0, avanceVisita - 1);
-    if (visitaTms) maqueta?.style.setProperty('--visibilidad-monitor', String(visita === 'tms' || visita === 'game' || visita === 'rural' || visita === 'time' ? suavizar(0.35, 1, tramoVisita) : 0));
+    maqueta?.style.setProperty('--visibilidad-monitor', String(visita === 'tms' || visita === 'game' || visita === 'rural' || visita === 'time' ? suavizar(0.35, 1, tramoVisita) : 0));
     const entrandoEnNave = visita === 'interior' ? entradaVisita : 0;
     visitaInterior?.actualizar(visita === 'interior' ? tramoVisita : 0, ancho, alto);
     carretilla.position.z = T.MathUtils.lerp(
@@ -444,6 +454,7 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
   return {
     avanzar(valor: number, visitaActiva?: TipoVisita) {
       avance = T.MathUtils.clamp(valor, 0, recorrido ? 3 : ultimoEncuadre);
+      prepararVisita(visitaActiva);
       visita = visitaActiva;
       avanceVisita = visita ? T.MathUtils.clamp(valor - ultimoEncuadre, 0, 4) : 0;
       solicitar();

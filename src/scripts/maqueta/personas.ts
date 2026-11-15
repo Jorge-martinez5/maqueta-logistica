@@ -1,5 +1,5 @@
 import * as T from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { cargarModelo } from '../modelos';
 
 /**
  * Personas modeladas en Blender (blender/personas.py → public/maqueta/personas.glb).
@@ -27,7 +27,7 @@ export interface Personas {
 let carga: Promise<Personas> | undefined;
 
 export function cargarPersonas() {
-  carga ??= new GLTFLoader().loadAsync('/maqueta/personas.glb').then(({ scene }) => crearPersonas(scene)).catch((error: unknown) => {
+  carga ??= cargarModelo('/maqueta/personas.glb').then(({ scene }) => crearPersonas(scene)).catch((error: unknown) => {
     carga = undefined; // El siguiente intento vuelve a pedir el archivo.
     throw error;
   });

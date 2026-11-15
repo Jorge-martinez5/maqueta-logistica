@@ -1,6 +1,6 @@
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { cargarModelo } from '../modelos';
 import { aplicacionesMapa } from '../../data/aplicaciones';
 import { crearPlano } from './plano';
 import { crearPantallaTms } from './tms';
@@ -650,6 +650,7 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
   for (const x of [9.1, 12.2, 31.5, 35.9]) palet(x, 0.23, 0.65, true);
 
   const carretilla = new T.Group();
+  carretilla.position.set(23, 0.24, 3.55);
   volumen(carretilla, 'salvia', [1.45, 0.69, 1.76], [0, 0.56, 0], redondo);
   caja('negro', [0.63, 0.38, 0.62], [0, 1.10, 0.22], carretilla);
   for (const x of [-0.61, 0.61]) {
@@ -693,7 +694,7 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
 
   const ruedas: T.Object3D[] = [];
   let giroRuedas = 0;
-  new GLTFLoader().loadAsync('/maqueta/camion.glb').then((gltf) => {
+  cargarModelo('/maqueta/camion.glb').then((gltf) => {
     const modelo = gltf.scene;
     modelo.traverse((pieza) => {
       if (!(pieza instanceof T.Mesh)) return;

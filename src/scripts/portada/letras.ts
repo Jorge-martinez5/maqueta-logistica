@@ -1,5 +1,5 @@
 import * as T from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { cargarModelo } from '../modelos';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 /**
@@ -99,7 +99,7 @@ export async function prepararLetras(canvas: HTMLCanvasElement, opciones: { movi
   } catch {
     return null;
   }
-  renderer.setPixelRatio(Math.min(devicePixelRatio, opciones.movil ? 1.5 : 2));
+  renderer.setPixelRatio(Math.min(devicePixelRatio, opciones.movil ? 1 : 1.5));
   renderer.toneMapping = T.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.1;
 
@@ -130,10 +130,10 @@ export async function prepararLetras(canvas: HTMLCanvasElement, opciones: { movi
   // dispersión para el arcoíris en los cantos y una película irisada muy leve.
   const vidrio = (tipo: keyof typeof VIDRIOS) => new T.MeshPhysicalMaterial({
     color: VIDRIOS[tipo].color, metalness: 0, roughness: 0.02,
-    transmission: 1, thickness: 0.7, ior: 1.52, dispersion: 4,
+    transmission: 1, thickness: 0.7, ior: 1.52, dispersion: opciones.movil ? 0 : 4,
     attenuationColor: new T.Color(VIDRIOS[tipo].atenuacion), attenuationDistance: VIDRIOS[tipo].distancia,
     specularIntensity: 1, clearcoat: 1, clearcoatRoughness: 0.02,
-    iridescence: 0.22, iridescenceIOR: 1.3,
+    iridescence: opciones.movil ? 0 : 0.22, iridescenceIOR: 1.3,
     envMapIntensity: 2.3,
   });
   const materiales = {
@@ -145,7 +145,7 @@ export async function prepararLetras(canvas: HTMLCanvasElement, opciones: { movi
 
   let gltf;
   try {
-    gltf = await new GLTFLoader().loadAsync('/visual/tisnova-letras.glb');
+    gltf = await cargarModelo('/visual/tisnova-letras.glb');
   } catch (error) {
     renderer.dispose();
     throw error;
@@ -195,6 +195,19 @@ export async function prepararLetras(canvas: HTMLCanvasElement, opciones: { movi
 
 
 
+  let frame = 0;
+  let visible = true;
+  let destruida = false;
+  let animarHasta = performance.now() + 6000;
+  function solicitar() {
+    if (destruida || !visible || document.hidden || frame) return;
+    frame = requestAnimationFrame(dibujar);
+  }
+  function despertar() {
+    animarHasta = Math.max(animarHasta, performance.now() + 1800);
+    solicitar();
+  }
+
   let ancho = 0;
   let alto = 0;
   let escala = 1;
@@ -209,8 +222,9 @@ export async function prepararLetras(canvas: HTMLCanvasElement, opciones: { movi
     // La palabra mide ~10 unidades: que ocupe ~70 % del ancho visible sin pasarse de alto.
     altoVisible = 2 * Math.tan(T.MathUtils.degToRad(camara.fov / 2)) * camara.position.z;
     const anchoVisible = altoVisible * camara.aspect;
-    escala = Math.min((anchoVisible * (opciones.movil ? 0.84 : 0.56)) / 10, (altoVisible * 0.3) / 2.2);
+    escala = Math.min((anchoVisible * (opciones.movil ? 0.84 : 0.46)) / 10, (altoVisible * (opciones.movil ? 0.3 : 0.23)) / 2.2);
     grupo.scale.setScalar(escala);
+    despertar();
   };
   const observador = new ResizeObserver(medir);
   observador.observe(canvas);
@@ -219,8 +233,10 @@ export async function prepararLetras(canvas: HTMLCanvasElement, opciones: { movi
   const puntero = new T.Vector2();
   const punteroSuave = new T.Vector2();
   const alMover = (evento: PointerEvent) => {
+    if (evento.pointerType !== 'mouse' || !visible) return;
     const rect = canvas.getBoundingClientRect();
     puntero.set(((evento.clientX - rect.left) / rect.width) * 2 - 1, -((evento.clientY - rect.top) / rect.height) * 2 + 1);
+    despertar();
   };
   window.addEventListener('pointermove', alMover, { passive: true });
 
@@ -240,18 +256,15 @@ export async function prepararLetras(canvas: HTMLCanvasElement, opciones: { movi
   const qVolteo = new T.Quaternion();
   const qObjetivo = new T.Quaternion();
   const ejeY = new T.Vector3(0, 1, 0);
-  let frame = 0;
-  let visible = true;
-
   const visibilidad = new IntersectionObserver(([entrada]) => {
     visible = entrada.isIntersecting;
-    if (visible && !frame) { antes = 0; frame = requestAnimationFrame(dibujar); }
+    if (visible) { antes = 0; despertar(); }
   });
   visibilidad.observe(canvas);
 
   function dibujar(ahora: number) {
     frame = 0;
-    if (!visible || document.hidden) return;
+    if (!visible || document.hidden || destruida) return;
     const t = (ahora - inicio) / 1000;
     const dt = Math.min(1 / 30, antes ? (ahora - antes) / 1000 : 1 / 60);
     antes = ahora;
@@ -261,18 +274,19 @@ export async function prepararLetras(canvas: HTMLCanvasElement, opciones: { movi
     const caos = suavizar((dispersion - 0.04) / 0.2) * (1 - suavizar((dispersion - 0.36) / 0.26));
     const orden = suavizar((dispersion - 0.34) / 0.34);
     impulso *= Math.exp(-dt * 2.5);
-    anillo += dt * (0.28 + impulso);
+    const actividad = T.MathUtils.clamp((animarHasta - ahora) / 600, 0, 1);
+    anillo += dt * (0.28 + impulso) * actividad;
+    if (!actividad) punteroSuave.copy(puntero);
 
     piezas.forEach((pieza, indice) => {
       const llegando = t < pieza.retraso;
 
       // Posición objetivo.
       const angulo = (indice / piezas.length) * Math.PI * 2 + anillo;
-      enAnillo.set(Math.cos(angulo) * RADIO, Math.sin(angulo * 3 - t * 1.6) * 0.18, Math.sin(angulo) * RADIO * FONDO);
+      enAnillo.set(Math.cos(angulo) * RADIO, Math.sin(angulo * 3) * 0.18, Math.sin(angulo) * RADIO * FONDO);
       if (llegando) objetivo.copy(pieza.origen);
       else {
         objetivo.copy(pieza.casa);
-        objetivo.y += Math.sin(t * 1.1 + pieza.fase) * 0.05 * (1 - orden);
         objetivo.lerp(enAnillo, orden).addScaledVector(pieza.estallido, caos);
       }
 
@@ -284,13 +298,18 @@ export async function prepararLetras(canvas: HTMLCanvasElement, opciones: { movi
 
       // Giro: quieta en la palabra, dando tumbos en el desorden y ordenada en el anillo.
       pieza.volteo += dt * pieza.giroRapidez * (caos + (llegando ? 1 : 0) + Math.min(1, pieza.velocidad.length() * 0.04));
-      qCasa.setFromAxisAngle(ejeY, Math.sin(t * 0.7 + pieza.fase) * 0.07);
+      qCasa.identity();
       // Miran a cámara y se giran un poco en los laterales, como siguiendo la curva; nunca quedan del revés.
       qAnillo.setFromAxisAngle(ejeY, -Math.cos(angulo) * 0.65);
       qObjetivo.slerpQuaternions(qCasa, qAnillo, orden);
       qVolteo.setFromAxisAngle(pieza.eje, pieza.volteo);
       qObjetivo.premultiply(qVolteo.slerp(qCasa.identity(), 1 - Math.min(1, caos + (llegando ? 1 : 0)))).multiply(pieza.base);
       pieza.malla.quaternion.slerp(qObjetivo, 1 - Math.exp(-dt * (6 + pieza.rigidez * 0.08)));
+      if (!actividad) {
+        pieza.malla.position.copy(objetivo);
+        pieza.malla.quaternion.copy(qObjetivo);
+        pieza.velocidad.set(0, 0, 0);
+      }
     });
 
     // El anillo se inclina para verse en perspectiva; el puntero mueve el conjunto.
@@ -298,23 +317,26 @@ export async function prepararLetras(canvas: HTMLCanvasElement, opciones: { movi
     grupo.rotation.y = punteroSuave.x * 0.3;
     grupo.rotation.z = orden * -0.09;
     // Formada, la palabra queda en el tercio superior; el anillo rodea el titular.
-    grupo.position.y = altoVisible * T.MathUtils.lerp(opciones.movil ? 0.25 : 0.22, 0.07, orden);
+    grupo.position.y = altoVisible * T.MathUtils.lerp(opciones.movil ? 0.25 : 0.30, 0.07, orden);
 
     renderer.render(escena, camara);
-    frame = requestAnimationFrame(dibujar);
+    if (ahora < animarHasta) solicitar();
   }
-  const alVolver = () => { if (!document.hidden && visible && !frame) { antes = 0; frame = requestAnimationFrame(dibujar); } };
+  const alVolver = () => { if (!document.hidden && visible) { antes = 0; despertar(); } };
   document.addEventListener('visibilitychange', alVolver);
-  frame = requestAnimationFrame(dibujar);
+  solicitar();
 
   return {
     dispersar(progreso) {
       const nuevo = Math.min(1, Math.max(0, progreso));
+      if (Math.abs(nuevo - dispersion) < 0.0001) return;
       // Bajar rápido acelera el anillo.
       impulso = Math.min(3, impulso + Math.abs(nuevo - dispersion) * 9);
       dispersion = nuevo;
+      despertar();
     },
     destruir() {
+      destruida = true;
       cancelAnimationFrame(frame);
       observador.disconnect();
       visibilidad.disconnect();

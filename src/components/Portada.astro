@@ -60,7 +60,7 @@ const titular = [
   .portada-lienzo { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 1.2s ease; }
   .portada[data-viva] .portada-lienzo { opacity: 1; }
   .portada-estatica {
-    position: absolute; left: 50%; top: 6%; width: min(1100px, 92%); height: auto; translate: -50% 0;
+    position: absolute; left: 50%; top: 44px; width: min(760px, 80%); height: clamp(120px, 23svh, 190px); object-fit: contain; translate: -50% 0;
     mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, black 60%, transparent);
   }
   .portada[data-viva] .portada-estatica { opacity: 0; transition: opacity .8s ease .4s; }
@@ -73,7 +73,7 @@ const titular = [
     position: relative; z-index: 2; min-height: max(560px, calc(100svh - var(--sticky-top)));
     width: min(100% - 2 * var(--gutter), var(--ancho-editorial)); margin-inline: auto;
     display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: auto minmax(min(36svh, 300px), 1fr) auto auto; column-gap: 40px;
+    grid-template-rows: auto minmax(min(24svh, 220px), 1fr) auto auto auto; column-gap: 40px;
     pointer-events: none;
   }
   .portada-interior :is(a, p) { pointer-events: auto; }
@@ -82,7 +82,7 @@ const titular = [
 
   .portada-titular {
     grid-column: 1 / -1; grid-row: 3; display: grid;
-    font-size: clamp(56px, min(10vw, 17svh), 180px); font-weight: 820; font-stretch: 72%;
+    font-size: clamp(56px, min(9vw, 14svh), 150px); font-weight: 820; font-stretch: 72%;
     letter-spacing: -.035em; line-height: .8; text-transform: uppercase; text-wrap: initial;
   }
   .linea { display: block; overflow-x: visible; overflow-y: clip; padding-block: .04em .08em; }
@@ -97,7 +97,7 @@ const titular = [
   }
   .letra { display: inline-block; }
 
-  .portada-texto { grid-column: 1; grid-row: 3; align-self: end; justify-self: start; max-width: min(400px, 36vw); padding-bottom: .9em; }
+  .portada-texto { grid-column: 1 / -1; grid-row: 4; justify-self: start; max-width: 560px; padding-top: 20px; }
   .portada-texto p { text-shadow: 0 1px 14px #061209, 0 0 4px #061209cc; color: #e3eadc; font-size: clamp(16px, 1.25vw, 19px); line-height: 1.5; }
   .portada-acciones { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 24px; margin-top: 20px; }
   .portada-acciones .button { background: #d8f58a; color: #10200f; }
@@ -105,7 +105,7 @@ const titular = [
   .portada-servicios { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 650; font-size: .9rem; }
   .portada-servicios:hover { text-decoration: underline; text-underline-offset: 5px; }
 
-  .portada-ruta { grid-column: 1 / -1; grid-row: 4; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 26px; padding-bottom: 20px; }
+  .portada-ruta { grid-column: 1 / -1; grid-row: 5; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 26px; padding-bottom: 20px; }
   .portada-ruta a {
     display: flex; align-items: baseline; gap: 12px; padding: 15px 8px 4px 0;
     border-top: 1px solid #e8f6d740; font-size: clamp(.78rem, 1.15vw, .96rem); font-weight: 600;
@@ -136,7 +136,7 @@ const titular = [
 
   @media (max-width: 900px) {
     .portada-interior { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(min(30svh, 260px), 1fr) auto auto auto; }
-    .portada-estatica { top: 12%; }
+    .portada-estatica { top: 12%; width: 92%; height: auto; }
     .portada-titular { font-size: clamp(54px, 17vw, 120px); }
     .portada-texto { grid-row: 4; align-self: start; max-width: 440px; padding: 16px 0 0; }
     .portada-ruta { grid-row: 5; }
