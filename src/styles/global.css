@@ -202,3 +202,9 @@ address a:hover { text-decoration: underline; text-underline-offset: 3px; }
   .maqueta-producto { justify-content: flex-start; }
   .maqueta-copy :is(h1, h2) { text-wrap: initial; }
 }
+
+/* Titulares condensados en mayúsculas, con el acento en cursiva editorial. */
+h1, h2 { font-stretch: 74%; font-weight: 800; text-transform: uppercase; letter-spacing: -.028em; line-height: .88; }
+h1 em, h2 em { font-stretch: 100%; text-transform: none; letter-spacing: -.02em; font-size: 1.08em; line-height: .8; }
+.palabra { display: inline-block; overflow-x: visible; overflow-y: clip; padding-block: .06em .1em; margin-block: -.06em -.1em; vertical-align: top; }
+.palabra > span { display: inline-block; }

@@ -2,6 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import Maqueta from '../components/Maqueta.astro';
 import Portada from '../components/Portada.astro';
+import Cinta from '../components/Cinta.astro';
 import Catalogo from '../components/Catalogo.astro';
 import { negocio, servicios, proyectos, clientes, equipo, formaDeTrabajar, navegacion, productos } from '../data/negocio';
 ---
@@ -26,6 +27,7 @@ import { negocio, servicios, proyectos, clientes, equipo, formaDeTrabajar, naveg
 
   <main id="contenido">
     <Portada />
+    <Cinta />
     <Maqueta />
 
     <Catalogo />
@@ -166,7 +168,7 @@ import { negocio, servicios, proyectos, clientes, equipo, formaDeTrabajar, naveg
   .section { padding-block: clamp(70px, 11vw, 156px); }
   .section h2 { margin-top: 0; text-wrap: initial; max-width: 16ch; }
   .section h2 em { white-space: normal; }
-  .section h2 { font-size: clamp(48px,6vw,88px); letter-spacing: -.045em; }
+  .section h2 { font-size: clamp(52px,7vw,112px); max-width: 14ch; }
 
   .clientes { background: #f9f8f1; }
   .clientes-lista { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 1px; margin-top: 52px; list-style: none; padding: 1px; background: var(--rule); }

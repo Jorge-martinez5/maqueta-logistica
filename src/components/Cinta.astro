@@ -1,0 +1,71 @@
+---
+const palabras = ['Software a medida', 'Integraciones', 'Logística', 'Soporte', 'Business Central', 'Consultoría'];
+---
+<div class="cinta" aria-hidden="true" data-cinta>
+  {[0, 1].map(() => (
+    <div class="cinta-pista">
+      {palabras.map((palabra, indice) => (
+        <span class:list={['cinta-palabra', { hueca: indice % 2 === 1 }]}>{palabra}<i>✳</i></span>
+      ))}
+    </div>
+  ))}
+</div>
+
+<style>
+  .cinta {
+    position: relative; z-index: 3; display: flex; overflow: clip;
+    padding-block: clamp(14px, 2vw, 26px);
+    background: #d8f58a; color: #0c1d10;
+    border-block: 1px solid #0c1d10;
+  }
+  .cinta-pista { display: flex; flex: none; align-items: center; min-width: 100%; }
+  .cinta-palabra {
+    display: inline-flex; align-items: center; gap: .45em; padding-right: .45em; white-space: nowrap;
+    font-size: clamp(34px, 6vw, 96px); font-weight: 820; font-stretch: 72%; letter-spacing: -.03em; line-height: 1;
+    text-transform: uppercase;
+  }
+  .cinta-palabra.hueca { color: transparent; -webkit-text-stroke: 1.5px #0c1d10; }
+  .cinta-palabra i { display: inline-block; color: #245e37; font-size: .55em; font-style: normal; -webkit-text-stroke: 0; }
+  @media (prefers-reduced-motion: no-preference) {
+    .cinta-palabra i { animation: girar 6s linear infinite; }
+    :root[data-movimiento-pausado] .cinta i { animation-play-state: paused; }
+  }
+  @keyframes girar { to { rotate: 360deg; } }
+</style>
+
+<script>
+  // La cinta avanza sola y acelera con el scroll; al subir, cambia de sentido.
+  const cinta = document.querySelector<HTMLElement>('[data-cinta]');
+  const pistas = Array.from(cinta?.querySelectorAll<HTMLElement>('.cinta-pista') ?? []);
+  const movimiento = matchMedia('(prefers-reduced-motion: no-preference)');
+  if (cinta && pistas.length) {
+    let desplazamiento = 0;
+    let sentido = 1;
+    let impulso = 0;
+    let ultima = scrollY;
+    let visible = false;
+    let frame = 0;
+    let antes = 0;
+
+    const pausada = () => !movimiento.matches || document.documentElement.hasAttribute('data-movimiento-pausado');
+    const paso = (ahora: number) => {
+      frame = 0;
+      if (!visible || pausada()) return;
+      const dt = Math.min(0.05, (ahora - (antes || ahora)) / 1000);
+      antes = ahora;
+      const delta = scrollY - ultima;
+      ultima = scrollY;
+      if (Math.abs(delta) > 1) sentido = Math.sign(delta);
+      impulso += (Math.min(40, Math.abs(delta)) - impulso) * 0.1;
+      const ancho = pistas[0].offsetWidth || 1;
+      desplazamiento = (desplazamiento - sentido * (60 + impulso * 18) * dt) % ancho;
+      const x = desplazamiento > 0 ? desplazamiento - ancho : desplazamiento;
+      pistas.forEach((pista) => { pista.style.translate = `${x}px 0`; });
+      frame = requestAnimationFrame(paso);
+    };
+    const arrancar = () => { if (!frame && visible && !pausada()) { antes = 0; frame = requestAnimationFrame(paso); } };
+    new IntersectionObserver(([entrada]) => { visible = entrada.isIntersecting; arrancar(); }).observe(cinta);
+    movimiento.addEventListener('change', arrancar);
+    new MutationObserver(arrancar).observe(document.documentElement, { attributeFilter: ['data-movimiento-pausado'] });
+  }
+</script>

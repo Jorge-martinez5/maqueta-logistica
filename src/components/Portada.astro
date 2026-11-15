@@ -1,173 +1,209 @@
 ---
-import piezas from '../data/piezas-portada.json';
+const titular = [
+  { texto: 'Tecnología', clase: 'linea-uno' },
+  { texto: 'que', clase: 'linea-dos', serif: 'conecta.' },
+];
 ---
-<section class="portada" id="inicio" aria-labelledby="portada-titulo">
-  <div class="wrap portada-interior">
-    <figure class="portada-marca" data-marca-portada>
-      <img src="/visual/tisnova-blender.webp" width="1600" height="600" alt="Tisnova en vidrio verde, con la T dividida en tres piezas" fetchpriority="high" />
-      <div class="portada-piezas" aria-hidden="true">
-        {piezas.map(({ x, y, width, height }, indice) => (
-          <img data-pieza data-src={`/visual/tisnova-piezas/${indice}.webp`} alt=""
-            width={width} height={height}
-            style={`left:${x / 16}%;top:${y / 6}%;width:${width / 16}%`} />
+<section class="portada" id="inicio" aria-labelledby="portada-titulo" data-portada>
+  <div class="portada-escenario">
+    <canvas class="portada-lienzo" data-letras aria-hidden="true"></canvas>
+    <img class="portada-estatica" src="/visual/tisnova-blender.webp" width="1600" height="600"
+      alt="Tisnova en vidrio verde, con la T dividida en tres piezas" fetchpriority="high" />
+    <div class="portada-grano" aria-hidden="true"></div>
+
+    <div class="portada-interior">
+      <p class="portada-etiqueta" data-enter><span aria-hidden="true">●</span> Software, integraciones y soporte · Murcia</p>
+      <h1 id="portada-titulo" class="portada-titular">
+        {titular.map(({ texto, clase, serif }, linea) => (
+          <span class={`linea ${clase}`}>
+            <span class="linea-texto" aria-hidden="true">
+              {[...texto].map((letra, indice) => <span class="letra" style={`--i:${indice + linea * 6}`}>{letra}</span>)}
+              {serif && <em class="letra" style={`--i:${texto.length + linea * 6 + 1}`}>{serif}</em>}
+            </span>
+          </span>
         ))}
+        <span class="sr-only">Tecnología que conecta.</span>
+      </h1>
+      <div class="portada-texto" data-enter>
+        <p>Desarrollamos software, conectamos vuestras aplicaciones y cuidamos los sistemas con los que trabajáis cada día.</p>
+        <div class="portada-acciones">
+          <a href="#terminal" class="button">Explorar la maqueta <span aria-hidden="true">↓</span></a>
+          <a href="#servicios" class="portada-servicios">Ver servicios <span aria-hidden="true">↗</span></a>
+        </div>
       </div>
-    </figure>
-    <div class="portada-texto">
-      <h1 id="portada-titulo" data-enter>Tecnología que{' '}<br /><em>conecta.</em></h1>
-      <p data-enter>Desarrollamos software, conectamos vuestras aplicaciones y cuidamos los sistemas con los que trabajáis cada día.</p>
-      <div class="portada-acciones" data-enter>
-        <a href="#terminal" class="button">Explorar la maqueta <span aria-hidden="true">↓</span></a>
-        <a href="#servicios" class="portada-servicios">Ver servicios <span aria-hidden="true">↗</span></a>
-      </div>
+      <nav class="portada-ruta" aria-label="Conocer Tisnova">
+        <a href="#consultoria"><span aria-hidden="true">01</span>Consultoría tecnológica <i aria-hidden="true">↗</i></a>
+        <a href="#productos"><span aria-hidden="true">02</span>Software propio <i aria-hidden="true">↗</i></a>
+        <a href="#proyectos"><span aria-hidden="true">03</span>Proyectos <i aria-hidden="true">↗</i></a>
+      </nav>
     </div>
-    <nav class="portada-ruta" aria-label="Conocer Tisnova">
-      <a href="#consultoria">Consultoría tecnológica <span aria-hidden="true">↗</span></a>
-      <a href="#productos">Software propio <span aria-hidden="true">↗</span></a>
-      <a href="#proyectos">Proyectos <span aria-hidden="true">↗</span></a>
-    </nav>
+    <p class="portada-pista" aria-hidden="true">Mueve el ratón · baja para soltar las letras</p>
   </div>
 </section>
 
 <style>
   .portada {
+    --p: 0;
     position: relative;
     isolation: isolate;
-    overflow: clip;
     color: #fdfbf2;
-    background: #091810;
+    background: #061209;
   }
+  .portada[data-viva] { height: calc(200svh - var(--sticky-top)); }
+  .portada-escenario {
+    position: sticky;
+    top: var(--sticky-top);
+    min-height: max(560px, calc(100svh - var(--sticky-top)));
+    overflow: clip;
+    background: radial-gradient(ellipse 70% 60% at 50% 40%, #24573a, #0b2215 60%, #061209);
+  }
+  .portada-lienzo { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 1.2s ease; }
+  .portada[data-viva] .portada-lienzo { opacity: 1; }
+  .portada-estatica {
+    position: absolute; left: 50%; top: 6%; width: min(1100px, 92%); height: auto; translate: -50% 0;
+    mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, black 60%, transparent);
+  }
+  .portada[data-viva] .portada-estatica { opacity: 0; transition: opacity .8s ease .4s; }
+  .portada-grano {
+    position: absolute; inset: -50%; pointer-events: none; opacity: .09; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  }
+
   .portada-interior {
-    width: min(100% - 2 * var(--gutter), var(--ancho-editorial));
-    min-height: calc(100svh - var(--sticky-top));
-    display: grid;
-    grid-template-columns: minmax(0, 1.18fr) minmax(0, .82fr);
-    grid-template-rows: 1fr auto;
-    column-gap: clamp(20px, 3vw, 50px);
-    align-items: center;
+    position: relative; z-index: 2; min-height: max(560px, calc(100svh - var(--sticky-top)));
+    width: min(100% - 2 * var(--gutter), var(--ancho-editorial)); margin-inline: auto;
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto minmax(min(36svh, 300px), 1fr) auto auto; column-gap: 40px;
+    pointer-events: none;
   }
-  .portada-texto { grid-area: 1 / 2; padding-block: clamp(52px, 8vh, 100px); }
-  h1 { font-size: clamp(40px, 4.9vw, 83px); letter-spacing: -.058em; line-height: .91; font-weight: 630; text-wrap: initial; }
-  h1 em { color: #e6f5a8; font-size: 1.08em; }
-  .portada-texto p { max-width: 34ch; margin-top: 30px; color: #ecefe3; font-size: clamp(17px, 1.45vw, 21px); line-height: 1.5; }
-  .portada-acciones { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 24px; margin-top: 28px; }
-  .portada-acciones .button { background: #e6f5a8; color: #18271e; }
-  .portada-acciones .button:hover { background: #f0facb; }
+  .portada-interior :is(a, p) { pointer-events: auto; }
+  .portada-etiqueta { grid-column: 1 / -1; padding-top: 22px; color: #c9dcc6; font-size: .74rem; font-weight: 650; letter-spacing: .14em; text-transform: uppercase; }
+  .portada-etiqueta span { color: #c9f27a; animation: latido 2.4s ease-in-out infinite; }
+
+  .portada-titular {
+    grid-column: 1 / -1; grid-row: 3; display: grid;
+    font-size: clamp(56px, min(10vw, 17svh), 180px); font-weight: 820; font-stretch: 72%;
+    letter-spacing: -.035em; line-height: .8; text-transform: uppercase; text-wrap: initial;
+  }
+  .linea { display: block; overflow-x: visible; overflow-y: clip; padding-block: .04em .08em; }
+  .linea-dos { margin-top: .06em; }
+  .linea-texto { display: inline-block; white-space: nowrap; }
+  .linea-uno .linea-texto { translate: calc(var(--p) * -14vw) 0; }
+  .linea-dos { text-align: right; }
+  .linea-dos .linea-texto { translate: calc(var(--p) * 14vw) 0; }
+  .portada-titular em {
+    margin-left: .18em; color: #d8f58a; font-family: var(--font-editorial); font-weight: 400; font-stretch: 100%;
+    font-size: 1.12em; letter-spacing: -.03em; text-transform: none;
+  }
+  .letra { display: inline-block; }
+
+  .portada-texto { grid-column: 1; grid-row: 3; align-self: end; justify-self: start; max-width: min(400px, 36vw); padding-bottom: .9em; }
+  .portada-texto p { color: #e3eadc; font-size: clamp(16px, 1.25vw, 19px); line-height: 1.5; }
+  .portada-acciones { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 24px; margin-top: 20px; }
+  .portada-acciones .button { background: #d8f58a; color: #10200f; }
+  .portada-acciones .button:hover { background: #ecfbc0; }
   .portada-servicios { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 650; font-size: .9rem; }
   .portada-servicios:hover { text-decoration: underline; text-underline-offset: 5px; }
-  .portada-ruta { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding-bottom: 24px; }
+
+  .portada-ruta { grid-column: 1 / -1; grid-row: 4; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 26px; padding-bottom: 20px; }
   .portada-ruta a {
-    display: flex;
-    align-items: center;
-    gap: clamp(8px, 1.25vw, 20px);
-    padding: 17px 8px 6px 0;
-    border-top: 1px solid #e8f6d777;
-    font-size: clamp(.75rem, 1.25vw, 1rem);
-    font-weight: 590;
+    display: flex; align-items: baseline; gap: 12px; padding: 15px 8px 4px 0;
+    border-top: 1px solid #e8f6d740; font-size: clamp(.78rem, 1.15vw, .96rem); font-weight: 600;
+    transition: border-color .2s, color .2s;
   }
-  .portada-ruta a:hover { border-color: #e6f5a8; color: #e6f5a8; }
-  .portada-ruta span { color: #e6f5a8; font-size: .76em; font-variant-numeric: tabular-nums; }
-  .portada a:focus-visible { outline-color: #e6f5a8; }
-  .portada-marca { grid-area: 1 / 1; position: relative; width: 100%; }
-  .portada-marca { aspect-ratio: 8 / 3; }
-  .portada-marca > img {
-    display: block; width: 100%; height: auto;
-    mask-image: linear-gradient(90deg, transparent, black 6% 94%, transparent),
-      linear-gradient(180deg, transparent, black 14% 76%, transparent);
-    mask-composite: intersect;
+  .portada-ruta span { color: #9fbf9a; font-size: .72em; font-variant-numeric: tabular-nums; letter-spacing: .08em; }
+  .portada-ruta i { margin-left: auto; color: #d8f58a; font-style: normal; transition: translate .2s; }
+  .portada-ruta a:hover { border-color: #d8f58a; color: #d8f58a; }
+  .portada-ruta a:hover i { translate: 3px -3px; }
+  .portada a:focus-visible { outline-color: #d8f58a; }
+  .portada-pista {
+    display: none; position: absolute; z-index: 2; left: var(--gutter); top: 50px; left: auto; right: var(--gutter);
+    color: #9fbf9a; font-size: .7rem; letter-spacing: .14em; text-transform: uppercase;
+    opacity: calc(1 - var(--p) * 4);
   }
-  .portada-piezas {
-    display: none; position: absolute; inset: 0;
-    background: radial-gradient(ellipse closest-side at 52% 68%, #2c5239, transparent);
+  .portada[data-viva] .portada-pista { display: block; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+  @keyframes latido { 50% { opacity: .35; } }
+  :root[data-movimiento-pausado] .portada-etiqueta span { animation: none; }
+  @keyframes subir { from { translate: 0 105%; rotate: 6deg; } }
+  @media (prefers-reduced-motion: no-preference) {
+    .portada-titular .letra { animation: subir .9s cubic-bezier(.2,.8,.2,1) backwards; animation-delay: calc(var(--i) * 32ms + 150ms); }
   }
-  .portada-marca[data-interactiva] > img { opacity: 0; }
-  .portada-marca[data-interactiva] .portada-piezas { display: block; }
-  .portada-piezas img {
-    position: absolute; height: auto; pointer-events: none;
-    filter: drop-shadow(0 12px 8px #020b05a0);
-    transition: transform .42s cubic-bezier(.2,.75,.25,1);
+  @media (prefers-reduced-motion: reduce) {
+    .portada-etiqueta span { animation: none; }
   }
+
   @media (max-width: 900px) {
-    .portada-interior { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr auto; }
-    .portada-marca { grid-area: 1 / 1; align-self: end; margin-top: clamp(22px, 5svh, 60px); }
-    .portada-texto { grid-area: 2 / 1; align-self: start; padding-block: clamp(45px, 8svh, 76px) 32px; }
-    h1 { font-size: clamp(42px, 11.4vw, 78px); }
-    .portada-texto p { margin-top: 22px; }
-    .portada-acciones { margin-top: 20px; }
-    .portada-ruta { padding-bottom: 16px; }
-    .portada-ruta a { flex-direction: column; align-items: flex-start; gap: 4px; padding-top: 9px; padding-right: 12px; line-height: 1.25; }
+    .portada-interior { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(min(30svh, 260px), 1fr) auto auto auto; }
+    .portada-estatica { top: 12%; }
+    .portada-titular { font-size: clamp(54px, 17vw, 120px); }
+    .portada-texto { grid-row: 4; align-self: start; max-width: 440px; padding: 16px 0 0; }
+    .portada-ruta { grid-row: 5; }
+    .portada-texto p { font-size: 15px; }
+    .portada-ruta { margin-top: 18px; padding-bottom: 12px; }
+    .portada-ruta a { flex-direction: column; gap: 2px; padding-top: 10px; line-height: 1.25; }
+    .portada-ruta i { display: none; }
+    .portada-pista { display: none !important; }
   }
 </style>
 
 <script>
-  const marca = document.querySelector<HTMLElement>('[data-marca-portada]');
-  const piezas = Array.from(marca?.querySelectorAll<HTMLImageElement>('[data-pieza]') ?? []);
+  const portada = document.querySelector<HTMLElement>('[data-portada]');
+  const lienzo = portada?.querySelector<HTMLCanvasElement>('[data-letras]');
+  const escenario = portada?.querySelector<HTMLElement>('.portada-escenario');
   const movimiento = matchMedia('(prefers-reduced-motion: no-preference)');
 
-  if (marca) {
-    let cargaIniciada = false;
-    let listas = false;
+  if (portada && lienzo) {
+    type Motor = Awaited<ReturnType<typeof import('../scripts/portada/letras').prepararLetras>>;
+    let motor: Motor = null;
+    let cargando = false;
     let frame = 0;
-    let puntero: PointerEvent | undefined;
 
-    const permitido = () => movimiento.matches && !document.documentElement.hasAttribute('data-movimiento-pausado');
-    const devolverPiezas = () => {
-      puntero = undefined;
-      cancelAnimationFrame(frame);
+    const dispositivo = navigator as Navigator & { connection?: { saveData?: boolean }; deviceMemory?: number };
+    const permitido = () => movimiento.matches
+      && !document.documentElement.hasAttribute('data-movimiento-pausado')
+      && !dispositivo.connection?.saveData
+      && (dispositivo.deviceMemory ?? Infinity) > 2;
+
+    const progreso = () => {
       frame = 0;
-      piezas.forEach((pieza) => pieza.style.removeProperty('transform'));
+      const rect = portada.getBoundingClientRect();
+      const recorrido = Math.max(1, rect.height - (escenario?.offsetHeight ?? innerHeight));
+      const p = Math.min(1, Math.max(0, -rect.top / recorrido));
+      portada.style.setProperty('--p', p.toFixed(4));
+      motor?.dispersar(p);
     };
+    const alDesplazar = () => { if (!frame) frame = requestAnimationFrame(progreso); };
 
-    const mover = () => {
-      frame = 0;
-      if (!puntero || !permitido()) return;
-      const rect = marca.getBoundingClientRect();
-      const x = (puntero.clientX - rect.left) / rect.width;
-      const y = (puntero.clientY - rect.top) / rect.height;
-      piezas.forEach((pieza) => {
-        const ancho = Number.parseFloat(pieza.style.width) / 100;
-        const centroX = Number.parseFloat(pieza.style.left) / 100 + ancho / 2;
-        const centroY = Number.parseFloat(pieza.style.top) / 100
-          + ancho * Number(pieza.getAttribute('height')) / Number(pieza.getAttribute('width')) * rect.width / rect.height / 2;
-        const dx = centroX - x;
-        const dy = (centroY - y) * rect.height / rect.width;
-        const fuerza = Math.max(0, 1 - Math.hypot(dx, dy) / .14) ** 2;
-        const lado = Math.max(-1, Math.min(1, dx * 35 + .35));
-        pieza.style.transform = fuerza
-          ? `translate(${lado * fuerza * 22}px,${fuerza * 28}px) rotate(${lado * fuerza * 32}deg)`
-          : '';
-      });
-    };
-
-    const activar = () => {
-      marca.setAttribute('data-interactiva', '');
-      if (!frame) frame = requestAnimationFrame(mover);
-    };
-
-    marca.addEventListener('pointermove', (evento) => {
-      if (evento.pointerType !== 'mouse' || !permitido()) return;
-      puntero = evento;
-      if (!cargaIniciada) {
-        cargaIniciada = true;
-        void Promise.all(piezas.map((pieza) => {
-          pieza.src = pieza.dataset.src!;
-          return pieza.decode();
-        })).then(() => {
-          listas = true;
-          if (puntero && permitido()) activar();
-        }).catch(() => { /* La imagen estática sigue visible. */ });
+    const encender = async () => {
+      if (motor || cargando || !permitido()) return;
+      cargando = true;
+      try {
+        const { prepararLetras } = await import('../scripts/portada/letras');
+        const nuevo = await prepararLetras(lienzo, { movil: matchMedia('(max-width: 900px)').matches });
+        if (!nuevo || !permitido()) { nuevo?.destruir(); return; }
+        motor = nuevo;
+        portada.setAttribute('data-viva', '');
+        window.addEventListener('scroll', alDesplazar, { passive: true });
+        progreso();
+      } catch (error) {
+        console.warn('La portada muestra la imagen estática.', error);
+      } finally {
+        cargando = false;
       }
-      if (listas) activar();
-    }, { passive: true });
-    marca.addEventListener('pointerleave', devolverPiezas);
-    const actualizar = () => {
-      if (permitido()) return;
-      devolverPiezas();
-      marca.removeAttribute('data-interactiva');
     };
+    const apagar = () => {
+      motor?.destruir();
+      motor = null;
+      portada.removeAttribute('data-viva');
+      portada.style.setProperty('--p', '0');
+      window.removeEventListener('scroll', alDesplazar);
+    };
+    const actualizar = () => { if (permitido()) void encender(); else apagar(); };
+
+    void encender();
     movimiento.addEventListener('change', actualizar);
-    new MutationObserver(actualizar).observe(document.documentElement, {
-      attributeFilter: ['data-movimiento-pausado'],
-    });
+    new MutationObserver(actualizar).observe(document.documentElement, { attributeFilter: ['data-movimiento-pausado'] });
   }
 </script>

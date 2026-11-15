@@ -345,6 +345,30 @@ motion.add({
   };
 });
 
+// Parte un titular en palabras enmascaradas, conservando <em> y <br>, para que suban una a una.
+function partirEnPalabras(titular: Element) {
+  if (titular.querySelector('.palabra')) return Array.from(titular.querySelectorAll<HTMLElement>('.palabra > span'));
+  const textos: Text[] = [];
+  const recorrido = document.createTreeWalker(titular, NodeFilter.SHOW_TEXT);
+  while (recorrido.nextNode()) textos.push(recorrido.currentNode as Text);
+  for (const texto of textos) {
+    const trozos = texto.data.split(/(\s+)/);
+    const fragmento = document.createDocumentFragment();
+    for (const trozo of trozos) {
+      if (!trozo) continue;
+      if (/^\s+$/.test(trozo)) { fragmento.append(' '); continue; }
+      const palabra = document.createElement('span');
+      palabra.className = 'palabra';
+      const interior = document.createElement('span');
+      interior.textContent = trozo;
+      palabra.append(interior);
+      fragmento.append(palabra);
+    }
+    texto.replaceWith(fragmento);
+  }
+  return Array.from(titular.querySelectorAll<HTMLElement>('.palabra > span'));
+}
+
 // Los titulares entran al asomar por el borde inferior. Sin JavaScript o sin movimiento, ya están en su sitio.
 motion.add('(prefers-reduced-motion: no-preference)', () => {
   if (animacionesPausadas) return;
@@ -353,9 +377,10 @@ motion.add('(prefers-reduced-motion: no-preference)', () => {
       if (!isIntersecting) continue;
       entrada.unobserve(target);
       if (boundingClientRect.top < innerHeight * 0.75) continue;
-      gsap.from(target, { y: 28, opacity: 0, duration: 0.8, ease: 'power3.out', clearProps: 'transform,opacity' });
+      const palabras = partirEnPalabras(target);
+      gsap.from(palabras, { yPercent: 110, rotate: 4, duration: 0.95, stagger: 0.06, ease: 'expo.out', clearProps: 'transform' });
     }
-  });
+  }, { rootMargin: '0px 0px -12% 0px' });
   document.querySelectorAll('[data-reveal]').forEach((titular) => entrada.observe(titular));
   return () => entrada.disconnect();
 });
