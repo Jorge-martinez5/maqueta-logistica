@@ -31,9 +31,9 @@ interface Pieza {
   base: T.Quaternion;
 }
 
-const VIDRIOS: Record<string, { color: string; atenuacion: string }> = {
-  esmeralda: { color: '#5fcf86', atenuacion: '#1f8f4c' },
-  lima: { color: '#d8f58a', atenuacion: '#8fcf2e' },
+const VIDRIOS: Record<string, { color: string; atenuacion: string; distancia: number }> = {
+  esmeralda: { color: '#d9fbe2', atenuacion: '#3fbf72', distancia: 1.8 },
+  lima: { color: '#f6ffe0', atenuacion: '#c4ec62', distancia: 2.4 },
 };
 
 function suavizar(x: number) {
@@ -42,15 +42,51 @@ function suavizar(x: number) {
 }
 
 function fondo() {
+  const lado = 1024;
   const lienzo = document.createElement('canvas');
-  lienzo.width = lienzo.height = 512;
+  lienzo.width = lienzo.height = lado;
   const ctx = lienzo.getContext('2d')!;
-  const degradado = ctx.createRadialGradient(256, 236, 10, 256, 256, 330);
+  const degradado = ctx.createRadialGradient(lado / 2, lado * 0.46, 20, lado / 2, lado / 2, lado * 0.66);
   degradado.addColorStop(0, '#2f6a45');
   degradado.addColorStop(0.45, '#123521');
   degradado.addColorStop(1, '#061209');
   ctx.fillStyle = degradado;
-  ctx.fillRect(0, 0, 512, 512);
+  ctx.fillRect(0, 0, lado, lado);
+  // Manchas de luz y franjas suaves: el vidrio necesita algo detrás que refractar.
+  // Resplandor claro detrás de la palabra formada (tercio superior): es lo que el vidrio deja ver y dobla.
+  const halo = ctx.createRadialGradient(lado / 2, lado * 0.3, 0, lado / 2, lado * 0.3, lado * 0.42);
+  halo.addColorStop(0, '#c8f0b0aa');
+  halo.addColorStop(0.35, '#6fcf8a55');
+  halo.addColorStop(1, '#00000000');
+  ctx.save();
+  ctx.translate(lado / 2, lado * 0.3);
+  ctx.scale(1.6, 0.55);
+  ctx.translate(-lado / 2, -lado * 0.3);
+  ctx.fillStyle = halo;
+  ctx.fillRect(-lado, -lado * 2, lado * 3, lado * 5);
+  ctx.restore();
+  const manchas: [number, number, number, string][] = [
+    [0.3, 0.38, 0.16, '#d8f58a38'], [0.72, 0.34, 0.2, '#7ee0a030'], [0.55, 0.62, 0.12, '#ffffff1c'], [0.18, 0.66, 0.1, '#c9f27a24'],
+  ];
+  for (const [x, y, r, color] of manchas) {
+    const luz = ctx.createRadialGradient(x * lado, y * lado, 0, x * lado, y * lado, r * lado);
+    luz.addColorStop(0, color);
+    luz.addColorStop(1, '#00000000');
+    ctx.fillStyle = luz;
+    ctx.fillRect(0, 0, lado, lado);
+  }
+  ctx.save();
+  ctx.translate(lado / 2, lado / 2);
+  ctx.rotate(-0.5);
+  for (let i = -6; i <= 6; i++) {
+    const franja = ctx.createLinearGradient(i * 70 - 18, 0, i * 70 + 18, 0);
+    franja.addColorStop(0, '#ffffff00');
+    franja.addColorStop(0.5, i % 2 ? '#ffffff05' : '#d8f58a08');
+    franja.addColorStop(1, '#ffffff00');
+    ctx.fillStyle = franja;
+    ctx.fillRect(i * 70 - 18, -lado, 36, lado * 2);
+  }
+  ctx.restore();
   const textura = new T.CanvasTexture(lienzo);
   textura.colorSpace = T.SRGBColorSpace;
   return textura;
@@ -65,7 +101,7 @@ export async function prepararLetras(canvas: HTMLCanvasElement, opciones: { movi
   }
   renderer.setPixelRatio(Math.min(devicePixelRatio, opciones.movil ? 1.5 : 2));
   renderer.toneMapping = T.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMappingExposure = 1.1;
 
   const escena = new T.Scene();
   escena.background = fondo();
@@ -78,28 +114,34 @@ export async function prepararLetras(canvas: HTMLCanvasElement, opciones: { movi
   const camara = new T.PerspectiveCamera(32, 1, 0.1, 100);
   camara.position.set(0, 0, 19);
 
-  const luz = new T.DirectionalLight('#fff6dc', 2.4);
+  // Luz principal cálida y dos contraluces que dibujan los cantos del vidrio.
+  const luz = new T.DirectionalLight('#fff6dc', 2.6);
   luz.position.set(-4, 6, 8);
-  const contraluz = new T.PointLight('#b9f27a', 40, 30);
-  contraluz.position.set(3, -2, -5);
-  escena.add(luz, contraluz, new T.AmbientLight('#cfe8d4', 0.35));
+  const contraluzIzquierda = new T.DirectionalLight('#ffffff', 3);
+  contraluzIzquierda.position.set(-9, 3, -6);
+  const contraluzDerecha = new T.DirectionalLight('#d8f58a', 2.6);
+  contraluzDerecha.position.set(9, -2, -5);
+  escena.add(luz, contraluzIzquierda, contraluzDerecha, new T.AmbientLight('#cfe8d4', 0.25));
 
   const grupo = new T.Group();
   escena.add(grupo);
 
+  // Vidrio macizo: transmisión total, color por absorción (más oscuro donde es más grueso),
+  // dispersión para el arcoíris en los cantos y una película irisada muy leve.
+  const vidrio = (tipo: keyof typeof VIDRIOS) => new T.MeshPhysicalMaterial({
+    color: VIDRIOS[tipo].color, metalness: 0, roughness: 0.02,
+    transmission: 1, thickness: 0.7, ior: 1.52, dispersion: 4,
+    attenuationColor: new T.Color(VIDRIOS[tipo].atenuacion), attenuationDistance: VIDRIOS[tipo].distancia,
+    specularIntensity: 1, clearcoat: 1, clearcoatRoughness: 0.02,
+    iridescence: 0.22, iridescenceIOR: 1.3,
+    envMapIntensity: 2.3,
+  });
   const materiales = {
-    esmeralda: new T.MeshPhysicalMaterial({
-      color: VIDRIOS.esmeralda.color, roughness: 0.08, metalness: 0, transmission: 0.82, thickness: 0.9, ior: 1.45,
-      attenuationColor: new T.Color(VIDRIOS.esmeralda.atenuacion), attenuationDistance: 0.9,
-      clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 1.6, specularIntensity: 1,
-    }),
-    lima: new T.MeshPhysicalMaterial({
-      color: VIDRIOS.lima.color, roughness: 0.1, metalness: 0, transmission: 0.7, thickness: 0.9, ior: 1.45,
-      attenuationColor: new T.Color(VIDRIOS.lima.atenuacion), attenuationDistance: 1.1,
-      clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 1.6,
-    }),
-    metal: new T.MeshPhysicalMaterial({ color: '#dfe6dc', roughness: 0.22, metalness: 1, clearcoat: 0.6, envMapIntensity: 1.4 }),
+    esmeralda: vidrio('esmeralda'),
+    lima: vidrio('lima'),
+    metal: new T.MeshPhysicalMaterial({ color: '#e8eee4', roughness: 0.12, metalness: 1, clearcoat: 1, envMapIntensity: 1.8 }),
   };
+
 
   let gltf;
   try {
@@ -151,17 +193,7 @@ export async function prepararLetras(canvas: HTMLCanvasElement, opciones: { movi
     };
   });
 
-  // Guía del anillo: una circunferencia fina que aparece cuando las letras se ordenan.
-  const RADIO = opciones.movil ? 4.7 : 6.8;
-  // Anillo achatado en profundidad: las letras de delante no se acercan tanto a cámara.
-  const FONDO = 0.5;
-  const puntos = Array.from({ length: 129 }, (_, i) => {
-    const a = (i / 128) * Math.PI * 2;
-    return new T.Vector3(Math.cos(a) * RADIO, 0, Math.sin(a) * RADIO * FONDO);
-  });
-  const guiaMaterial = new T.LineBasicMaterial({ color: '#d8f58a', transparent: true, opacity: 0, depthWrite: false });
-  const guia = new T.Line(new T.BufferGeometry().setFromPoints(puntos), guiaMaterial);
-  grupo.add(guia);
+
 
   let ancho = 0;
   let alto = 0;
@@ -192,6 +224,9 @@ export async function prepararLetras(canvas: HTMLCanvasElement, opciones: { movi
   };
   window.addEventListener('pointermove', alMover, { passive: true });
 
+  const RADIO = opciones.movil ? 4.7 : 6.8;
+  // Anillo achatado en profundidad: las letras de delante no se acercan tanto a cámara.
+  const FONDO = 0.5;
   let dispersion = 0;
   let impulso = 0;
   let anillo = 0;
@@ -227,7 +262,6 @@ export async function prepararLetras(canvas: HTMLCanvasElement, opciones: { movi
     const orden = suavizar((dispersion - 0.34) / 0.34);
     impulso *= Math.exp(-dt * 2.5);
     anillo += dt * (0.28 + impulso);
-    guiaMaterial.opacity = orden * 0.28;
 
     piezas.forEach((pieza, indice) => {
       const llegando = t < pieza.retraso;
@@ -287,8 +321,6 @@ export async function prepararLetras(canvas: HTMLCanvasElement, opciones: { movi
       window.removeEventListener('pointermove', alMover);
       document.removeEventListener('visibilitychange', alVolver);
       mallas.forEach((malla) => malla.geometry.dispose());
-      guia.geometry.dispose();
-      guiaMaterial.dispose();
       Object.values(materiales).forEach((material) => material.dispose());
       (escena.background as T.Texture).dispose();
       escena.environment?.dispose();
