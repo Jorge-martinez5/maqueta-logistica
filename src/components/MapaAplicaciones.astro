@@ -12,7 +12,7 @@ import { productos } from '../data/negocio';
     <p>Elegid una aplicación en la nave para ver cómo funciona.</p>
   </div>
   <ul class="mapa-enlaces" aria-label="Aplicaciones de Tisnova">
-    {aplicacionesMapa.map(({ id, escritorio, movil, recorrido }) => {
+    {aplicacionesMapa.map(({ id, escritorio, movil, recorrido, zona, color }) => {
       const producto = productos.find((producto) => producto.id === id)!;
       return (
         <li>
@@ -22,11 +22,11 @@ import { productos } from '../data/negocio';
             data-visita-destino={id === 'tissga' ? 'interior' : id === 'tistransit' ? 'transit' : id === 'tistms' ? 'tms' : id === 'tisgame' ? 'game' : id === 'tisrural' ? 'rural' : id === 'tistime' ? 'time' : undefined}
             data-fila={id === 'tisrural' || id === 'tisgame' ? 'superior' : undefined}
             href={recorrido ?? producto.url}
-            aria-label={`${producto.nombre} · ${producto.sector}`}
-            style={`--mapa-x: ${escritorio[0]}%; --mapa-y: ${escritorio[1]}; --movil-x: ${movil[0]}%; --movil-y: ${movil[1]}`}
+            aria-label={`${producto.nombre} · ${zona} · ${producto.sector}`}
+            style={`--zona-color: ${color}; --mapa-x: ${escritorio[0]}%; --mapa-y: ${escritorio[1]}; --movil-x: ${movil[0]}%; --movil-y: ${movil[1]}`}
           >
             <img src={`/productos/${id}.svg`} width="18" height="18" alt="" loading="lazy" />
-            {producto.nombre}
+            <span>{producto.nombre}<small>{zona}</small></span>
           </a>
         </li>
       );
@@ -35,6 +35,9 @@ import { productos } from '../data/negocio';
 </section>
 
 <style>
+  .mapa-punto { background: var(--zona-color, #fbfdf6); }
+  .mapa-punto small { display: block; font-size: .65rem; font-weight: 500; line-height: 1.3; }
+
   .mapa-fondo {
     position: absolute;
     inset: 0 0 auto;
@@ -80,7 +83,7 @@ import { productos } from '../data/negocio';
     padding: 8px 12px;
     border: 1px solid #acc2a9;
     border-radius: 999px;
-    background: #fbfdf6;
+    background: var(--zona-color, #fbfdf6);
     color: var(--color-accent);
     box-shadow: 0 4px 15px #1f342027;
     font-size: .8rem;

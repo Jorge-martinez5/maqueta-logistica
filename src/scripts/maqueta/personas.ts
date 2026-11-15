@@ -6,13 +6,13 @@ import { cargarModelo } from '../modelos';
  * Cada pieza llega con materiales por nombre (Ropa, Pantalón, Piel…) y aquí se
  * visten con los colores de cada personaje.
  */
-export type Prenda = 'Ropa' | 'Pantalón' | 'Calzado' | 'Piel' | 'Pelo' | 'Chaleco' | 'Reflectante' | 'Ojos' | 'Gorra';
+export type Prenda = 'Ropa' | 'Pantalón' | 'Calzado' | 'Piel' | 'Pelo' | 'Chaleco' | 'Reflectante' | 'Ojos' | 'Gorra' | 'Mejilla';
 export type Vestuario = Partial<Record<Prenda, number>>;
 type NombrePieza = 'Sentado' | 'TorsoDePie' | 'Pierna' | 'Cabeza' | 'Gorra' | 'Moño' | 'BrazoSuperior' | 'Antebrazo';
 
 const BASE: Record<Prenda, number> = {
   Ropa: 0xf4efdf, Pantalón: 0x354d57, Calzado: 0x242e2d, Piel: 0xd8a478, Pelo: 0x4a3529,
-  Chaleco: 0xcbd86e, Reflectante: 0xedeee0, Ojos: 0x1d2422, Gorra: 0x37664c,
+  Chaleco: 0xcbd86e, Reflectante: 0xedeee0, Ojos: 0x1d2422, Gorra: 0x37664c, Mejilla: 0xe48f78,
 };
 // Largo de cada tramo del brazo en el modelo (crecen hacia +Y desde la articulación).
 const LARGO_SUPERIOR = 0.45;

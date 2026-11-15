@@ -1,8 +1,8 @@
 export const aplicacionesMapa = [
-  { id: 'tistms', posicion: [10.1, 2.3], escritorio: [47.64, 0.5066], movil: [14.46, 0.333], recorrido: null },
-  { id: 'tistransit', posicion: [17.3, -12.75], escritorio: [57.48, 0.321], movil: [32.98, 0.2332], recorrido: '/tistransit/' },
-  { id: 'tissga', posicion: [28.8, -5.85], escritorio: [75.74, 0.5066], movil: [67.32, 0.333], recorrido: '/sga/' },
-  { id: 'tistime', posicion: [12.1, 1.4], escritorio: [52, 0.41], movil: [32, 0.40], recorrido: null },
-  { id: 'tisrural', posicion: [13.2, -24.4], escritorio: [47.64, 0.2282], movil: [14.46, 0.1833], recorrido: null },
-  { id: 'tisgame', posicion: [28.8, -16.2], escritorio: [75.74, 0.2282], movil: [67.32, 0.1833], recorrido: null },
+  { id: 'tistms', zona: 'Tráfico', color: '#d6e4ed', posicion: [10.1, 2.3], escritorio: [47.64, 0.5066], movil: [14.46, 0.333], recorrido: null },
+  { id: 'tistransit', zona: 'Control', color: '#dcdff0', posicion: [17.3, -12.75], escritorio: [57.48, 0.321], movil: [32.98, 0.2332], recorrido: '/tistransit/' },
+  { id: 'tissga', zona: 'Almacén', color: '#d8e4bb', posicion: [28.8, -5.85], escritorio: [75.74, 0.5066], movil: [67.32, 0.333], recorrido: '/sga/' },
+  { id: 'tistime', zona: 'Equipo', color: '#c7e4dd', posicion: [12.1, 1.4], escritorio: [52, 0.41], movil: [32, 0.40], recorrido: null },
+  { id: 'tisrural', zona: 'Alojamiento', color: '#edddc4', posicion: [13.2, -24.4], escritorio: [47.64, 0.2282], movil: [14.46, 0.1833], recorrido: null },
+  { id: 'tisgame', zona: 'Pista', color: '#e5d4c6', posicion: [28.8, -16.2], escritorio: [75.74, 0.2282], movil: [67.32, 0.1833], recorrido: null },
 ] as const;

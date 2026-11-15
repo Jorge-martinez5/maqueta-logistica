@@ -4,9 +4,9 @@ import type { Personas } from './personas';
 
 const encuadres = [
   { posicion: [8.7, 5.2, -10.8], foco: [1.25, 1.4, 0], alto: 6.7 },
-  { posicion: [4.9, 3.0, -7.2], foco: [2.9, 1.64, -1.32], alto: 3.65 },
+  { posicion: [4.9, 3.0, -7.2], foco: [2.95, 1.85, -1.45], alto: 3.15 },
   { posicion: [3.1, 2.85, -5.0], foco: [2.72, 2.30, -1.25], alto: 1.75 },
-  { posicion: [4.8, 3.2, -7.6], foco: [3.04, 1.70, -1.54], alto: 3.5 },
+  { posicion: [4.8, 3.2, -7.6], foco: [3.04, 1.90, -1.54], alto: 3.05 },
 ] as const;
 
 type Posicion = [number, number, number];
@@ -69,6 +69,8 @@ export function prepararTransit(tractor: T.Group, personas: Personas, integrado 
   tractor.add(conductor);
   conductor.add(personas.pieza('Sentado', vestuarioConductor));
   const caraConductor = new T.Group();
+  // La cabeza estilizada debe caber bajo el techo de la cabina (y=2,72).
+  caraConductor.scale.setScalar(0.74);
   caraConductor.position.set(2.89, 1.69 + 0.71, -0.6);
   caraConductor.add(personas.pieza('Cabeza', vestuarioConductor), personas.pieza('Gorra', vestuarioConductor));
   tractor.add(caraConductor);

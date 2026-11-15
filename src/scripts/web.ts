@@ -105,13 +105,29 @@ if (visitas.length) {
 const motion = gsap.matchMedia();
 const controlMovimiento = document.querySelector<HTMLButtonElement>('[data-motion-toggle]');
 let animacionesPausadas = false;
-controlMovimiento?.addEventListener('click', () => {
-  animacionesPausadas = !animacionesPausadas;
+// Retirar la preferencia del selector eliminado para recuperar la vista habitual.
+try { localStorage.removeItem('tisnova-vista'); } catch {}
+const preferenciaMovimiento = matchMedia('(prefers-reduced-motion: reduce)');
+const capacidades = navigator as Navigator & { connection?: { saveData?: boolean }; deviceMemory?: number };
+let vistaNoDisponible = Boolean(capacidades.connection?.saveData || (capacidades.deviceMemory ?? Infinity) <= 2);
+function desactivarVistaAnimada() { vistaNoDisponible = true; sincronizarVista(); }
+function sincronizarVista() {
+  const sencilla = animacionesPausadas || preferenciaMovimiento.matches || vistaNoDisponible;
   document.documentElement.toggleAttribute('data-movimiento-pausado', animacionesPausadas);
-  controlMovimiento.setAttribute('aria-pressed', String(animacionesPausadas));
-  controlMovimiento.textContent = animacionesPausadas ? 'Activar animaciones' : 'Pausar animaciones';
+  controlMovimiento?.setAttribute('aria-pressed', String(sencilla));
+  if (controlMovimiento) controlMovimiento.disabled = preferenciaMovimiento.matches || vistaNoDisponible;
+  if (controlMovimiento) controlMovimiento.textContent = sencilla ? 'Activar animaciones' : 'Pausar animaciones';
+
+}
+function cambiarVista(sencilla: boolean) {
+  if (sencilla === animacionesPausadas) return;
+  animacionesPausadas = sencilla;
+  sincronizarVista();
   gsap.matchMediaRefresh();
-});
+}
+controlMovimiento?.addEventListener('click', () => cambiarVista(!animacionesPausadas));
+preferenciaMovimiento.addEventListener('change', sincronizarVista);
+sincronizarVista();
 
 
 motion.add({
@@ -284,8 +300,8 @@ motion.add({
       enlacesMapa.addEventListener('focusout', alSalirDelMapa);
       return;
     }
-    motor = prepararMaqueta(canvas, limpiar, personas, tipo === 'interior' || tipo === 'transit' ? tipo : 'terminal');
-    if (!motor) return;
+    motor = prepararMaqueta(canvas, () => { limpiar(); desactivarVistaAnimada(); }, personas, tipo === 'interior' || tipo === 'transit' ? tipo : 'terminal');
+    if (!motor) { desactivarVistaAnimada(); return; }
 
     const destinoActual = document.getElementById(location.hash.slice(1));
     const paradaActual = visitaDe(destinoActual) ? destinoActual : null;
@@ -324,6 +340,7 @@ motion.add({
     document.fonts.ready.then(() => { if (activo) trigger?.refresh(); });
   }).catch((error: unknown) => {
     limpiar();
+    desactivarVistaAnimada();
     console.warn('Tisnova muestra las vistas estáticas de la maqueta.', error);
   });
 
@@ -389,6 +406,6 @@ motion.add('(prefers-reduced-motion: no-preference)', () => {
   return () => entrada.disconnect();
 });
 
-if (matchMedia('(prefers-reduced-motion: no-preference)').matches && window.scrollY < 20 && !location.hash) {
+if (!animacionesPausadas && matchMedia('(prefers-reduced-motion: no-preference)').matches && window.scrollY < 20 && !location.hash) {
   gsap.from('[data-enter]', { y: 12, opacity: 0, duration: 0.65, stagger: 0.07, ease: 'power3.out', clearProps: 'transform,opacity' });
 }
