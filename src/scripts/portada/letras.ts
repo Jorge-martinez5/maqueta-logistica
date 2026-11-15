@@ -4,8 +4,8 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 /**
  * Las letras de Tisnova (modeladas en Blender, public/visual/tisnova-letras.glb)
- * flotan en órbita, se juntan para formar la marca y, al bajar, vuelven a girar
- * alrededor del titular.
+ * llegan dando tumbos y forman la marca. Al bajar, salen despedidas en desorden y
+ * acaban girando, ordenadas, en un anillo alrededor del titular.
  */
 export interface Letras {
   /** 0 = palabra formada, 1 = órbita completa. */
@@ -15,10 +15,17 @@ export interface Letras {
 
 interface Pieza {
   malla: T.Mesh;
+  /** Sitio en la palabra formada. */
   casa: T.Vector3;
-  angulo: number;
-  altura: number;
-  giro: T.Vector3;
+  /** Hacia dónde sale despedida al desmontarse. */
+  estallido: T.Vector3;
+  /** Desde dónde llega al cargar la página. */
+  origen: T.Vector3;
+  velocidad: T.Vector3;
+  eje: T.Vector3;
+  volteo: number;
+  rigidez: number;
+  giroRapidez: number;
   fase: number;
   retraso: number;
   base: T.Quaternion;
@@ -111,23 +118,50 @@ export async function prepararLetras(canvas: HTMLCanvasElement, opciones: { movi
   mallas.forEach((malla) => caja.expandByPoint(malla.position));
   const centro = caja.getCenter(new T.Vector3());
 
+  // Pseudoaleatorio con semilla: el desorden es el mismo en cada visita.
+  let semilla = 7;
+  const azar = () => { semilla = (semilla * 16807) % 2147483647; return semilla / 2147483647; };
+
   const piezas: Pieza[] = mallas.map((malla, indice) => {
     const nombre = (malla.material as T.Material).name.toLowerCase();
     malla.material = nombre.includes('metal') ? materiales.metal : nombre.includes('lima') ? materiales.lima : materiales.esmeralda;
     const casa = malla.position.clone().sub(centro);
-    malla.position.copy(casa);
     grupo.add(malla);
+    // Sale despedida hacia fuera de la palabra, con algo de profundidad y altura al azar.
+    const estallido = new T.Vector3(
+      casa.x * 0.45 + (azar() - 0.5) * 5,
+      (azar() - 0.5) * 4.6,
+      (azar() - 0.35) * 7,
+    );
+    const origen = new T.Vector3((azar() - 0.5) * 26, (azar() - 0.5) * 12, -6 - azar() * 10);
+    malla.position.copy(origen);
     return {
       malla,
       casa,
-      angulo: (indice / mallas.length) * Math.PI * 2,
-      altura: Math.sin(indice * 2.3) * 0.9,
-      giro: new T.Vector3(Math.sin(indice * 1.7), Math.cos(indice * 1.3), Math.sin(indice * 0.7)).normalize(),
+      estallido,
+      origen,
+      velocidad: new T.Vector3(),
+      eje: new T.Vector3(azar() - 0.5, azar() - 0.5, azar() - 0.5).normalize(),
+      volteo: 0,
+      rigidez: 26 + azar() * 34,
+      giroRapidez: 5 + azar() * 7,
       fase: indice * 0.83,
-      retraso: indice / mallas.length,
+      retraso: 0.15 + azar() * 0.75,
       base: malla.quaternion.clone(),
     };
   });
+
+  // Guía del anillo: una circunferencia fina que aparece cuando las letras se ordenan.
+  const RADIO = opciones.movil ? 4.7 : 6.8;
+  // Anillo achatado en profundidad: las letras de delante no se acercan tanto a cámara.
+  const FONDO = 0.5;
+  const puntos = Array.from({ length: 129 }, (_, i) => {
+    const a = (i / 128) * Math.PI * 2;
+    return new T.Vector3(Math.cos(a) * RADIO, 0, Math.sin(a) * RADIO * FONDO);
+  });
+  const guiaMaterial = new T.LineBasicMaterial({ color: '#d8f58a', transparent: true, opacity: 0, depthWrite: false });
+  const guia = new T.Line(new T.BufferGeometry().setFromPoints(puntos), guiaMaterial);
+  grupo.add(guia);
 
   let ancho = 0;
   let alto = 0;
@@ -159,20 +193,24 @@ export async function prepararLetras(canvas: HTMLCanvasElement, opciones: { movi
   window.addEventListener('pointermove', alMover, { passive: true });
 
   let dispersion = 0;
-  let dispersionSuave = 0;
+  let impulso = 0;
+  let anillo = 0;
+  let antes = 0;
   const inicio = performance.now();
-  const llegada = 2.6; // segundos que tarda la palabra en formarse al cargar
-  const posicion = new T.Vector3();
-  const orbita = new T.Vector3();
-  const cuaternio = new T.Quaternion();
-  const quieto = new T.Quaternion();
+  const objetivo = new T.Vector3();
+  const enAnillo = new T.Vector3();
+  const aceleracion = new T.Vector3();
+  const qCasa = new T.Quaternion();
+  const qAnillo = new T.Quaternion();
+  const qVolteo = new T.Quaternion();
+  const qObjetivo = new T.Quaternion();
   const ejeY = new T.Vector3(0, 1, 0);
   let frame = 0;
   let visible = true;
 
   const visibilidad = new IntersectionObserver(([entrada]) => {
     visible = entrada.isIntersecting;
-    if (visible && !frame) frame = requestAnimationFrame(dibujar);
+    if (visible && !frame) { antes = 0; frame = requestAnimationFrame(dibujar); }
   });
   visibilidad.observe(canvas);
 
@@ -180,43 +218,68 @@ export async function prepararLetras(canvas: HTMLCanvasElement, opciones: { movi
     frame = 0;
     if (!visible || document.hidden) return;
     const t = (ahora - inicio) / 1000;
-    dispersionSuave += (dispersion - dispersionSuave) * 0.08;
-    punteroSuave.lerp(puntero, 0.05);
+    const dt = Math.min(1 / 30, antes ? (ahora - antes) / 1000 : 1 / 60);
+    antes = ahora;
+    punteroSuave.lerp(puntero, 1 - Math.exp(-dt * 3));
 
-    const radio = opciones.movil ? 4.4 : 6.4;
-    piezas.forEach((pieza) => {
-      // Al cargar, cada letra llega desde la órbita con un pequeño escalonado.
-      const formada = suavizar((t - pieza.retraso * 0.9) / (llegada - 0.9));
-      const enOrbita = Math.max(1 - formada, suavizar(dispersionSuave * 1.7 - pieza.retraso * 0.35));
+    // Tres momentos: palabra → desorden (las letras salen despedidas y dan tumbos) → anillo ordenado.
+    const caos = suavizar((dispersion - 0.04) / 0.2) * (1 - suavizar((dispersion - 0.36) / 0.26));
+    const orden = suavizar((dispersion - 0.34) / 0.34);
+    impulso *= Math.exp(-dt * 2.5);
+    anillo += dt * (0.28 + impulso);
+    guiaMaterial.opacity = orden * 0.28;
 
-      const angulo = pieza.angulo + t * 0.32;
-      orbita.set(Math.cos(angulo) * radio, pieza.altura + Math.sin(angulo * 2 + pieza.fase) * 0.35, Math.sin(angulo) * radio * 0.55);
-      posicion.copy(pieza.casa);
-      posicion.y += Math.sin(t * 1.1 + pieza.fase) * 0.06;
-      posicion.lerp(orbita, enOrbita);
-      pieza.malla.position.copy(posicion);
+    piezas.forEach((pieza, indice) => {
+      const llegando = t < pieza.retraso;
 
-      cuaternio.setFromAxisAngle(pieza.giro, t * 0.9 + pieza.fase);
-      quieto.setFromAxisAngle(ejeY, Math.sin(t * 0.7 + pieza.fase) * 0.08);
-      pieza.malla.quaternion.slerpQuaternions(quieto, cuaternio, enOrbita).multiply(pieza.base);
+      // Posición objetivo.
+      const angulo = (indice / piezas.length) * Math.PI * 2 + anillo;
+      enAnillo.set(Math.cos(angulo) * RADIO, Math.sin(angulo * 3 - t * 1.6) * 0.18, Math.sin(angulo) * RADIO * FONDO);
+      if (llegando) objetivo.copy(pieza.origen);
+      else {
+        objetivo.copy(pieza.casa);
+        objetivo.y += Math.sin(t * 1.1 + pieza.fase) * 0.05 * (1 - orden);
+        objetivo.lerp(enAnillo, orden).addScaledVector(pieza.estallido, caos);
+      }
+
+      // Muelle poco amortiguado: cada letra con su rigidez, así llegan a destiempo y rebotan.
+      const amortiguacion = 2 * 0.52 * Math.sqrt(pieza.rigidez) * (1 + orden * 0.5);
+      aceleracion.subVectors(objetivo, pieza.malla.position).multiplyScalar(pieza.rigidez).addScaledVector(pieza.velocidad, -amortiguacion);
+      pieza.velocidad.addScaledVector(aceleracion, dt);
+      pieza.malla.position.addScaledVector(pieza.velocidad, dt);
+
+      // Giro: quieta en la palabra, dando tumbos en el desorden y ordenada en el anillo.
+      pieza.volteo += dt * pieza.giroRapidez * (caos + (llegando ? 1 : 0) + Math.min(1, pieza.velocidad.length() * 0.04));
+      qCasa.setFromAxisAngle(ejeY, Math.sin(t * 0.7 + pieza.fase) * 0.07);
+      // Miran a cámara y se giran un poco en los laterales, como siguiendo la curva; nunca quedan del revés.
+      qAnillo.setFromAxisAngle(ejeY, -Math.cos(angulo) * 0.65);
+      qObjetivo.slerpQuaternions(qCasa, qAnillo, orden);
+      qVolteo.setFromAxisAngle(pieza.eje, pieza.volteo);
+      qObjetivo.premultiply(qVolteo.slerp(qCasa.identity(), 1 - Math.min(1, caos + (llegando ? 1 : 0)))).multiply(pieza.base);
+      pieza.malla.quaternion.slerp(qObjetivo, 1 - Math.exp(-dt * (6 + pieza.rigidez * 0.08)));
     });
 
-    // La órbita se inclina como un anillo; el puntero mueve el conjunto.
-    grupo.rotation.x = 0.12 + dispersionSuave * 0.32 - punteroSuave.y * 0.18;
-    grupo.rotation.y = punteroSuave.x * 0.32;
-    grupo.rotation.z = dispersionSuave * -0.12;
-    // Formada, la palabra queda en el tercio superior, por encima del titular.
-    grupo.position.y = altoVisible * (opciones.movil ? 0.25 : 0.22) * (1 - dispersionSuave);
+    // El anillo se inclina para verse en perspectiva; el puntero mueve el conjunto.
+    grupo.rotation.x = 0.1 + orden * 0.5 - punteroSuave.y * 0.16;
+    grupo.rotation.y = punteroSuave.x * 0.3;
+    grupo.rotation.z = orden * -0.09;
+    // Formada, la palabra queda en el tercio superior; el anillo rodea el titular.
+    grupo.position.y = altoVisible * T.MathUtils.lerp(opciones.movil ? 0.25 : 0.22, 0.07, orden);
 
     renderer.render(escena, camara);
     frame = requestAnimationFrame(dibujar);
   }
-  const alVolver = () => { if (!document.hidden && visible && !frame) frame = requestAnimationFrame(dibujar); };
+  const alVolver = () => { if (!document.hidden && visible && !frame) { antes = 0; frame = requestAnimationFrame(dibujar); } };
   document.addEventListener('visibilitychange', alVolver);
   frame = requestAnimationFrame(dibujar);
 
   return {
-    dispersar(progreso) { dispersion = Math.min(1, Math.max(0, progreso)); },
+    dispersar(progreso) {
+      const nuevo = Math.min(1, Math.max(0, progreso));
+      // Bajar rápido acelera el anillo.
+      impulso = Math.min(3, impulso + Math.abs(nuevo - dispersion) * 9);
+      dispersion = nuevo;
+    },
     destruir() {
       cancelAnimationFrame(frame);
       observador.disconnect();
@@ -224,6 +287,8 @@ export async function prepararLetras(canvas: HTMLCanvasElement, opciones: { movi
       window.removeEventListener('pointermove', alMover);
       document.removeEventListener('visibilitychange', alVolver);
       mallas.forEach((malla) => malla.geometry.dispose());
+      guia.geometry.dispose();
+      guiaMaterial.dispose();
       Object.values(materiales).forEach((material) => material.dispose());
       (escena.background as T.Texture).dispose();
       escena.environment?.dispose();
