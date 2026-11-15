@@ -1,11 +1,13 @@
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { aplicacionesMapa } from '../../data/aplicaciones';
 import { crearPlano } from './plano';
 import { crearPantallaTms } from './tms';
 import { crearPantallaRural } from './rural';
 import { crearPantallaTime } from './time';
 import { crearTexturaSuperficie } from './materiales';
+import type { Personas } from './personas';
 
 const colores = {
   cal: 0xf8f8ed, blanco: 0xfffff6, hormigon: 0xd6dbcc, junta: 0xb9c5b1,
@@ -23,7 +25,8 @@ type Posicion = [number, number, number];
 
 export type TipoMaqueta = 'terminal' | 'interior' | 'transit';
 
-export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: number) {
+/** `alCambiar` pide un nuevo fotograma cuando llega algo cargado aparte, como el camión de Blender. */
+export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: number, personas: Personas, alCambiar: () => void = () => {}) {
   const interior = tipo === 'interior';
   const transit = tipo === 'transit';
   const terminal = tipo === 'terminal';
@@ -156,8 +159,12 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
     return placa;
   }
 
+  // Camión de cajas: se ve mientras carga el modelo de Blender (public/maqueta/camion.glb) o si falla.
   function camion(tono: Tono, ventanillaAbierta = false) {
+    const conjunto = new T.Group();
     const parent = new T.Group();
+    parent.name = 'carroceria';
+    conjunto.add(parent);
     // Chasis y semirremolque con perfiles de esquina, faldones y pilotos.
     caja('negro', [8.3, 0.22, 1.7], [0, 0.66, 0], parent);
     volumen(parent, 'blanco', [6.1, 2.36, 2.27], [-1.06, 2.00, 0], redondo);
@@ -226,7 +233,7 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
         volumen(parent, x > 0 ? tono : 'negro', [1.08, 0.36, 1.08], [x, 0.47, lado * 0.97], guardabarros).rotation.x = Math.PI / 2;
       }
     }
-    return parent;
+    return conjunto;
   }
 
   function palet(x: number, y: number, z: number, carga = true, parent: T.Object3D = suelo) {
@@ -285,6 +292,9 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
     caja('faro', [0.22, 0.03, 0.42], [x, 5.44, 21.0]);
   }
 
+  // Persona sentada (modelo de Blender) en su silla. La figura va algo escalada para la altura de estas mesas.
+  const ESCALA_SENTADA = 1.16;
+  const ASIENTO = 0.79;
   function persona(parent: T.Group, x: number, z: number, giro: number, ropa: Tono, moño = false) {
     const grupo = new T.Group();
     grupo.position.set(x, 0.25, z);
@@ -293,19 +303,23 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
     volumen(grupo, 'salvia', [0.79, 0.16, 0.73], [0, 0.71, 0.07], redondo);
     volumen(grupo, 'salvia', [0.78, 0.79, 0.14], [0, 1.05, 0.42], redondo);
     caja('metal', [0.13, 0.64, 0.13], [0, 0.38, 0.07], grupo);
-    // Proporciones adultas: cabeza pequeña sobre un torso con hombros y cuello.
-    volumen(grupo, ropa, [0.5, 0.7, 0.28], [0, 1.15, 0], redondo);
-    volumen(grupo, ropa, [0.58, 0.14, 0.3], [0, 1.45, 0], redondo);
-    volumen(grupo, 'piel', [0.11, 0.1, 0.11], [0, 1.56, -0.02], deposito);
-    volumen(grupo, 'piel', [0.27, 0.33, 0.28], [0, 1.74, -0.03], copaSuave);
-    volumen(grupo, 'madera', [0.29, 0.15, 0.29], [0, 1.86, 0.01], copaSuave);
-    if (moño) volumen(grupo, 'negro', [0.19, 0.19, 0.16], [0, 1.79, 0.15], copaSuave);
+    const vestuario = { Ropa: colores[ropa], Pantalón: 0x34433d, Pelo: moño ? 0x2a211c : 0x5a4030 };
+    const figura = new T.Group();
+    figura.position.y = ASIENTO;
+    figura.scale.setScalar(ESCALA_SENTADA);
+    grupo.add(figura);
+    figura.add(personas.pieza('Sentado', vestuario));
+    const cabeza = new T.Group();
+    cabeza.position.y = 0.71;
+    cabeza.add(personas.pieza('Cabeza', vestuario));
+    if (moño) cabeza.add(personas.pieza('Moño', vestuario));
+    figura.add(cabeza);
+    // Brazos en coordenadas del grupo: hombro, codo y mano sobre la mesa.
     const brazos = [-1, 1].map((lado) => {
-      volumen(grupo, 'negro', [0.2, 0.18, 0.55], [lado * 0.13, 0.74, -0.18], redondo);
-      volumen(grupo, 'negro', [0.18, 0.55, 0.2], [lado * 0.13, 0.48, -0.42], redondo);
-      const brazo = volumen(grupo, ropa, [0.13, 0.15, 0.46], [lado * 0.3, 1.18, -0.22], redondo);
-      const mano = volumen(grupo, 'piel', [0.1, 0.09, 0.15], [lado * 0.3, 1.2, -0.47], redondo);
-      return { brazo, mano };
+      const colocar = personas.brazo(grupo, vestuario, ESCALA_SENTADA);
+      const hombro = new T.Vector3(lado * 0.2 * ESCALA_SENTADA, ASIENTO + 0.57 * ESCALA_SENTADA, 0);
+      colocar(hombro, new T.Vector3(lado * 0.3, 1.0, -0.1), new T.Vector3(lado * 0.24, 1.2, -0.5));
+      return { hombro, colocar };
     });
     return { grupo, brazos };
   }
@@ -383,12 +397,19 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
   const aparcamiento = transit ? [] : interior
     ? [[-31, 4.5, -0.14, 'salvia'], [-22.5, 7.9, Math.PI, 'verde']] as const
     : [[-35.8, -3, -Math.PI / 2, 'salvia'], [-16.5, 7.9, Math.PI, 'verde']] as const;
+  // Los aparcados se agrupan aparte para poder cambiarlos por el modelo de Blender cuando llegue.
+  const aparcadosCajas = new T.Group();
+  const aparcados: { x: number; z: number; giro: number; tono: Tono }[] = [];
   for (const [x, z, giro, tono] of [...aparcamiento, [35.0, 8.3, Math.PI / 2, 'salvia'] as const]) {
     const estacionado = camion(tono);
     estacionado.position.set(x, 0.045, z);
     estacionado.rotation.y = giro;
-    suelo.add(estacionado);
+    aparcadosCajas.add(estacionado);
+    aparcados.push({ x, z, giro, tono });
   }
+  const loteAparcados = new T.Group();
+  escena.add(loteAparcados);
+  agruparPiezas(aparcadosCajas, loteAparcados);
 
   // Control documental, acceso y tótem.
   const gate = -6;
@@ -478,7 +499,7 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
     const empleado = persona(puesto, 0, 0.86, 0, 'bosque');
     escena.add(empleado.grupo);
     empleado.grupo.position.add(puesto.position);
-    const { brazo, mano } = empleado.brazos[1];
+    const { hombro, colocar } = empleado.brazos[1];
     const telefono = new T.Group();
     empleado.grupo.add(telefono);
     volumen(telefono, 'negro', [0.30, 0.55, 0.046], [0, 0, 0], redondo);
@@ -491,8 +512,10 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
     telefono.add(frontal);
     caja('negro', [0.056, 0.011, 0.005], [0, 0.228, 0.026], telefono);
     const direccionBrazo = new T.Vector3();
-    const ejeBrazo = new T.Vector3(0, 0, -1);
-    const codo = new T.Vector3(0.3, 1.18, 0.01);
+    const mano = new T.Vector3();
+    const codo = new T.Vector3();
+    const codoReposo = new T.Vector3(0.3, 1.0, -0.1);
+    const codoArriba = new T.Vector3(0.42, 1.08, -0.12);
     const reposo = new T.Vector3(0.3, 1.2, -0.47);
     const manoEnMesa = new T.Vector3(0.55, 1.12, -0.81);
     const levantada = new T.Vector3(0.60, 1.44, -0.39);
@@ -507,11 +530,8 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
           direccionBrazo.set(0.67, 1.57, -0.28), levantar,
         );
         telefono.rotation.set(T.MathUtils.lerp(-Math.PI / 2, -0.06, levantar), 1.13 * levantar, -0.04 * levantar);
-        mano.position.copy(reposo).lerp(manoEnMesa, coger).lerp(levantada, levantar);
-        brazo.position.copy(codo).lerp(mano.position, 0.5);
-        direccionBrazo.subVectors(mano.position, codo);
-        brazo.scale.z = direccionBrazo.length() / 0.46;
-        brazo.quaternion.setFromUnitVectors(ejeBrazo, direccionBrazo.normalize());
+        mano.copy(reposo).lerp(manoEnMesa, coger).lerp(levantada, levantar);
+        colocar(hombro, codo.copy(codoReposo).lerp(codoArriba, levantar), mano);
         pantallaTime.actualizar(avance);
       },
     };
@@ -666,9 +686,60 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
   if (!interior) palet(0, 0.23, -1.53, true, cargaRuta);
   escena.add(carretilla);
 
-  const tractor = camion('verde', transit || terminal);
+  const ventanillaAbierta = transit || terminal;
+  const tractor = camion('verde', ventanillaAbierta);
   escena.add(tractor);
   agruparPiezas(suelo, escena);
+
+  const ruedas: T.Object3D[] = [];
+  let giroRuedas = 0;
+  new GLTFLoader().loadAsync('/maqueta/camion.glb').then((gltf) => {
+    const modelo = gltf.scene;
+    modelo.traverse((pieza) => {
+      if (!(pieza instanceof T.Mesh)) return;
+      pieza.castShadow = true;
+      pieza.receiveShadow = true;
+    });
+    const lacados = new Map<Tono, T.Material>();
+    const vestir = (tono: Tono, abierta: boolean) => {
+      const copia = modelo.clone();
+      copia.traverse((pieza) => {
+        if (/cristal.*conductor/i.test(pieza.name)) pieza.visible = !abierta;
+        if (!(pieza instanceof T.Mesh) || tono === 'verde' || !(pieza.material instanceof T.MeshStandardMaterial)) return;
+        if (pieza.material.name !== 'Verde lacado') return;
+        if (!lacados.has(tono)) {
+          const lacado = pieza.material.clone();
+          lacado.color.setHex(colores[tono]);
+          lacados.set(tono, lacado);
+        }
+        pieza.material = lacados.get(tono)!;
+      });
+      // El rótulo sigue dibujándose en la web para usar la misma tipografía que el resto de la maqueta.
+      for (const lado of [-1, 1]) {
+        texto(copia, 'Tisnova', [3.85, 0.96], [-1.05, 2.17, lado * 1.165]).rotation.y = lado > 0 ? 0 : Math.PI;
+      }
+      return copia;
+    };
+
+    const principal = vestir('verde', ventanillaAbierta);
+    tractor.remove(tractor.getObjectByName('carroceria')!);
+    tractor.add(principal);
+    principal.traverse((pieza) => { if (/^rueda/i.test(pieza.name)) ruedas.push(pieza); });
+    ruedas.forEach((rueda) => { rueda.rotation.z = giroRuedas; });
+
+    // InstancedMesh.dispose() libera solo las matrices; geometrías y materiales siguen compartidos.
+    escena.remove(loteAparcados);
+    loteAparcados.children.forEach((lote) => { if (lote instanceof T.InstancedMesh) lote.dispose(); });
+    for (const { x, z, giro, tono } of aparcados) {
+      const estacionado = vestir(tono, false);
+      estacionado.position.set(x, 0.045, z);
+      estacionado.rotation.y = giro;
+      escena.add(estacionado);
+    }
+    alCambiar();
+  }).catch((error: unknown) => {
+    console.warn('La maqueta sigue con el camión sencillo.', error);
+  });
 
   const salidaOficina = interior
     ? [new T.Vector3(-42, 0.057, 15.46), new T.Vector3(-25, 0.057, 15.46)]
@@ -707,13 +778,18 @@ export function construirMundo(escena: T.Scene, tipo: TipoMaqueta, anisotropia: 
       puestoTms?.time.redibujar();
       puestoRural?.pantalla.redibujar();
     },
+    /** Gira las ruedas según los metros recorridos (radio 0,45). */
+    rodar(distancia: number) {
+      giroRuedas = -distancia / 0.45;
+      ruedas.forEach((rueda) => { rueda.rotation.z = giroRuedas; });
+    },
     trazar(progreso: number) {
       trazado.geometry.setDrawRange(0, Math.floor(progreso * segmentos) * carasPorSegmento);
     },
   };
 }
 
-function agruparPiezas(origen: T.Group, escena: T.Scene) {
+function agruparPiezas(origen: T.Group, escena: T.Object3D) {
   const lotes = new Map<string, T.Mesh<T.BufferGeometry, T.Material>[]>();
   origen.updateMatrixWorld(true);
   origen.traverse((elemento) => {

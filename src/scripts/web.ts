@@ -274,13 +274,17 @@ motion.add({
 
   let carga: IntersectionObserver | undefined;
   const enlacesMapa = maqueta.querySelector('.mapa-enlaces');
-  const iniciar = () => import('./maqueta/camara').then(({ prepararMaqueta }) => {
+  // Las personas de Blender se cargan antes de montar la escena; mientras, se ven las vistas estáticas.
+  const iniciar = () => Promise.all([
+    import('./maqueta/camara'),
+    import('./maqueta/personas').then(({ cargarPersonas }) => cargarPersonas()),
+  ]).then(([{ prepararMaqueta }, personas]) => {
     if (!activo) return;
     if (enlacesMapa?.contains(document.activeElement)) {
       enlacesMapa.addEventListener('focusout', alSalirDelMapa);
       return;
     }
-    motor = prepararMaqueta(canvas, limpiar, tipo === 'interior' || tipo === 'transit' ? tipo : 'terminal');
+    motor = prepararMaqueta(canvas, limpiar, personas, tipo === 'interior' || tipo === 'transit' ? tipo : 'terminal');
     if (!motor) return;
 
     const destinoActual = document.getElementById(location.hash.slice(1));

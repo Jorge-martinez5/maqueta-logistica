@@ -1,6 +1,7 @@
 import * as T from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { construirMundo, type TipoMaqueta } from './mundo';
+import type { Personas } from './personas';
 import { prepararInterior } from './interior';
 import { prepararTransit } from './transit';
 import { prepararVisitaMonitor } from './tms';
@@ -27,7 +28,7 @@ function suavizar(inicio: number, final: number, avance: number) {
   return t * t * (3 - 2 * t);
 }
 
-export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, tipo: TipoMaqueta = 'terminal') {
+export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, personas: Personas, tipo: TipoMaqueta = 'terminal') {
   const context = canvas.getContext('webgl2', { alpha: false, antialias: true, powerPreference: 'high-performance' });
   if (!context) return null;
   const renderer = new T.WebGLRenderer({ canvas, context, antialias: true });
@@ -71,12 +72,17 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
   escena.add(base);
 
   const anisotropia = renderer.capabilities.getMaxAnisotropy();
-  const mundo = construirMundo(escena, tipo, anisotropia);
+  // Si el camión de Blender llega con las sombras congeladas (mapa en reposo), se recalculan.
+  const mundo = construirMundo(escena, tipo, anisotropia, personas, () => {
+    sol.shadow.needsUpdate = true;
+    solicitar();
+  });
+  const longitudRuta = mundo.ruta.getLength();
   const maqueta = canvas.closest<HTMLElement>('[data-maqueta]');
   const recorrido = tipo === 'interior' ? prepararInterior(mundo)
-    : tipo === 'transit' ? prepararTransit(mundo.tractor) : null;
+    : tipo === 'transit' ? prepararTransit(mundo.tractor, personas) : null;
   const visitaInterior = tipo === 'terminal' ? prepararInterior(mundo, true) : null;
-  const visitaTransit = tipo === 'terminal' ? prepararTransit(mundo.tractor, true) : null;
+  const visitaTransit = tipo === 'terminal' ? prepararTransit(mundo.tractor, personas, true) : null;
   const visitaTms = mundo.puestoTms ? prepararVisitaMonitor(mundo.puestoTms.pantalla, mundo.puestoTms.monitor) : null;
   const visitaTime = mundo.puestoTms ? prepararTime(mundo.puestoTms.time) : null;
   const visitaRural = mundo.puestoRural
@@ -259,6 +265,7 @@ export function prepararMaqueta(canvas: HTMLCanvasElement, perdido: () => void, 
     ruta.getTangentAt(posicionCamion, tangente);
     tractor.position.copy(punto);
     tractor.rotation.y = Math.atan2(-tangente.z, tangente.x);
+    mundo.rodar(posicionCamion * longitudRuta);
 
     const abrir = suavizar(3.21, 3.89, avance);
     techo.position.set(abrir * 16, abrir * 12, abrir * -36);
